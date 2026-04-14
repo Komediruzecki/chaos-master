@@ -10,6 +10,7 @@ import { Root } from '@/lib/Root'
 import { deleteRecentFlame,loadRecentFlames } from '@/utils/recentFlames'
 import { recordEntries } from '@/utils/record'
 import { Button } from '../Button/Button'
+import { Checkbox } from '../Checkbox/Checkbox'
 import { Card } from '../ControlCard/ControlCard'
 import { DelayedShow } from '../DelayedShow/DelayedShow'
 import { createLoadFlame } from '../LoadFlameModal/LoadFlameModal'
@@ -49,6 +50,8 @@ type WelcomeScreenProps = {
   onLoadFlame: (flame: FlameDescriptor) => void
   onNewFlame: () => void
   history: ChangeHistory<FlameDescriptor>
+  showDontShowAgain?: boolean
+  onDontShowAgainChange?: (checked: boolean, ev: Event) => void
 }
 
 function FlamePreview(props: { flameDescriptor: FlameDescriptor }) {
@@ -222,6 +225,13 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
       </section>
 
       <section class={ui['about-section']}>
+        <label class={ui['dont-show-again']}>
+          <Checkbox
+            checked={props.showDontShowAgain ?? false}
+            onChange={props.onDontShowAgainChange ?? (() => {})}
+          />
+          <span>Don't show on startup</span>
+        </label>
         <a
           href="https://github.com/chaos-matters/chaos-master"
           target="_blank"

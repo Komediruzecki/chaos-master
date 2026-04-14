@@ -44,6 +44,7 @@ import { saveRecentFlame } from './utils/recentFlames'
 import { sum } from './utils/sum'
 import { useKeyboardShortcuts } from './utils/useKeyboardShortcuts'
 import { useLoadFlameFromFile } from './utils/useLoadFlameFromFile'
+import { dismissWelcome,hasWelcomeBeenDismissed } from './utils/welcomeDismissed'
 import type { Setter } from 'solid-js'
 import type { v2f } from 'typegpu/data'
 import type { QualityPreset } from './components/Quality/QualityPresets'
@@ -651,7 +652,8 @@ export function Wrappers() {
   )
   const [wrappersHistory, , wrappersHistoryActions] =
     wrappersHistoryTuple
-  const [showWelcome, setShowWelcome] = createSignal(true)
+  const [dontShowAgain, setDontShowAgain] = createSignal(false)
+  const [showWelcome, setShowWelcome] = createSignal(!hasWelcomeBeenDismissed())
 
   const errorHandler = (err: unknown, _: () => void) => {
     if (err instanceof Error) {
@@ -686,6 +688,13 @@ export function Wrappers() {
                   >
                     <WelcomeScreen
                       history={wrappersHistoryActions}
+                      showDontShowAgain={dontShowAgain()}
+                      onDontShowAgainChange={(checked) => {
+                        setDontShowAgain(checked)
+                        if (checked) {
+                          dismissWelcome()
+                        }
+                      }}
                       onLoadFlame={(flame) => {
                         wrappersHistoryActions.replace(structuredClone(flame))
                         setShowWelcome(false)
