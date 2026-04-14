@@ -652,7 +652,6 @@ export function Wrappers() {
   const [wrappersHistory, , wrappersHistoryActions] =
     wrappersHistoryTuple
   const [showWelcome, setShowWelcome] = createSignal(true)
-  const showLoadFlameModal = createLoadFlame(wrappersHistoryActions).showLoadFlameModal
 
   const errorHandler = (err: unknown, _: () => void) => {
     if (err instanceof Error) {
@@ -686,6 +685,7 @@ export function Wrappers() {
                     }
                   >
                     <WelcomeScreen
+                      history={wrappersHistoryActions}
                       onLoadFlame={(flame) => {
                         wrappersHistoryActions.replace(structuredClone(flame))
                         setShowWelcome(false)
@@ -693,12 +693,6 @@ export function Wrappers() {
                       onNewFlame={() => {
                         wrappersHistoryActions.replace(structuredClone(example1))
                         setShowWelcome(false)
-                      }}
-                      onOpenLoadModal={async () => {
-                        const result = await showLoadFlameModal()
-                        if (result !== undefined) {
-                          setShowWelcome(false)
-                        }
                       }}
                     />
                   </Show>

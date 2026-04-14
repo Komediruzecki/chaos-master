@@ -12,8 +12,10 @@ import { recordEntries } from '@/utils/record'
 import { Button } from '../Button/Button'
 import { Card } from '../ControlCard/ControlCard'
 import { DelayedShow } from '../DelayedShow/DelayedShow'
+import { createLoadFlame } from '../LoadFlameModal/LoadFlameModal'
 import ui from './WelcomeScreen.module.css'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
+import type { ChangeHistory } from '@/utils/createStoreHistory'
 import type { RecentFlame } from '@/utils/recentFlames'
 
 const tips = [
@@ -46,7 +48,7 @@ const tips = [
 type WelcomeScreenProps = {
   onLoadFlame: (flame: FlameDescriptor) => void
   onNewFlame: () => void
-  onOpenLoadModal: () => void
+  history: ChangeHistory<FlameDescriptor>
 }
 
 function FlamePreview(props: { flameDescriptor: FlameDescriptor }) {
@@ -80,6 +82,7 @@ function FlamePreview(props: { flameDescriptor: FlameDescriptor }) {
 
 export function WelcomeScreen(props: WelcomeScreenProps) {
   const [recentFlames, setRecentFlames] = createSignal<RecentFlame[]>([])
+  const { showLoadFlameModal } = createLoadFlame(props.history)
 
   onMount(() => {
     setRecentFlames(loadRecentFlames())
@@ -119,7 +122,12 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
           </Button>
           <Button
             class={ui['quick-action-button']}
-            onClick={props.onOpenLoadModal}
+            onClick={async () => {
+              const result = await showLoadFlameModal()
+              if (result !== undefined) {
+                props.onLoadFlame(result)
+              }
+            }}
           >
             Load Flame
           </Button>
