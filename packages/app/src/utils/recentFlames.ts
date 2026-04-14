@@ -50,7 +50,7 @@ export function saveRecentFlame(
   const entry: RecentFlame = {
     id,
     name: name ?? `Flame ${new Date().toLocaleDateString()}`,
-    flame: structuredClone(flame),
+    flame: JSON.parse(JSON.stringify(flame)),
     savedAt: Date.now(),
   }
   const updated = [entry, ...recent].slice(0, MAX_RECENT_FLAMES)
