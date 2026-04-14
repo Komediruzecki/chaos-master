@@ -160,15 +160,22 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
                   <span class={ui['item-name']}>{recent.name}</span>
                   <span class={ui['item-date']}>{formatDate(recent.savedAt)}</span>
                 </div>
-                <button
+                <span
                   class={ui['delete-button']}
+                  role="button"
+                  tabIndex={0}
                   onClick={(e) => {
                     handleDeleteRecent(e, recent.id)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      handleDeleteRecent(e as unknown as MouseEvent, recent.id)
+                    }
                   }}
                   title="Delete"
                 >
                   <Cross />
-                </button>
+                </span>
               </button>
             )}
           </For>

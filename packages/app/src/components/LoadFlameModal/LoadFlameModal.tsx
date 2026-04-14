@@ -158,8 +158,9 @@ function LoadFlameModal(props: LoadFlameModalProps) {
                     {formatDate(recent.savedAt)}
                   </span>
                 </div>
-                <button
-                  class={ui.item}
+                <span
+                  role="button"
+                  tabIndex={0}
                   style={{
                     position: 'absolute',
                     top: '0.25rem',
@@ -182,10 +183,15 @@ function LoadFlameModal(props: LoadFlameModalProps) {
                   onClick={(e) => {
                     handleDeleteRecent(e, recent.id)
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      handleDeleteRecent(e as unknown as MouseEvent, recent.id)
+                    }
+                  }}
                   title="Delete"
                 >
                   <Cross />
-                </button>
+                </span>
               </button>
             )}
           </For>
