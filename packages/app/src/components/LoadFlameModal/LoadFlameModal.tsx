@@ -1,12 +1,14 @@
-import { createSignal, For } from 'solid-js'
+import { createSignal, For, Show } from 'solid-js'
 import { vec2f, vec4f } from 'typegpu/data'
 import { DEFAULT_QUALITY } from '@/defaults'
 import { examples } from '@/flame/examples'
 import { Flam3 } from '@/flame/Flam3'
+import { Cross } from '@/icons'
 import { AutoCanvas } from '@/lib/AutoCanvas'
 import { Camera2D } from '@/lib/Camera2D'
 import { Root } from '@/lib/Root'
 import { extractFlameFromPng } from '@/utils/flameInPng'
+import { deleteRecentFlame,loadRecentFlames } from '@/utils/recentFlames'
 import { recordEntries } from '@/utils/record'
 import { Button } from '../Button/Button'
 import { DelayedShow } from '../DelayedShow/DelayedShow'
@@ -94,6 +96,8 @@ async function pickPngFile(): Promise<File | null> {
 }
 
 function LoadFlameModal(props: LoadFlameModalProps) {
+  const [recentFlames, setRecentFlames] = createSignal(loadRecentFlames())
+
   async function loadFromFile() {
     const file = await pickPngFile()
     if (!file) return
@@ -105,6 +109,20 @@ function LoadFlameModal(props: LoadFlameModalProps) {
       console.warn(err)
       alert(`No valid flame found in '${file.name}'.`)
     }
+  }
+
+  function handleDeleteRecent(e: MouseEvent, id: string) {
+    e.stopPropagation()
+    deleteRecentFlame(id)
+    setRecentFlames(loadRecentFlames())
+  }
+
+  function formatDate(timestamp: number) {
+    const d = new Date(timestamp)
+    return d.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+    })
   }
 
   return (
@@ -120,6 +138,59 @@ function LoadFlameModal(props: LoadFlameModalProps) {
       <section>
         From disk <Button onClick={loadFromFile}>Choose File</Button>
       </section>
+      <Show when={recentFlames().length > 0}>
+        <h2>Recent Flames</h2>
+        <section class={ui.gallery}>
+          <For each={recentFlames()}>
+            {(recent, i) => (
+              <button
+                class={ui.item}
+                onClick={() => {
+                  props.respond(structuredClone(recent.flame))
+                }}
+              >
+                <DelayedShow delayMs={i() * 30}>
+                  <Preview flameDescriptor={recent.flame} />
+                </DelayedShow>
+                <div class={ui.itemTitle}>
+                  <span>{recent.name}</span>
+                  <span style={{ 'font-size': '0.7rem', opacity: '0.7' }}>
+                    {formatDate(recent.savedAt)}
+                  </span>
+                </div>
+                <button
+                  class={ui.item}
+                  style={{
+                    position: 'absolute',
+                    top: '0.25rem',
+                    right: '0.25rem',
+                    padding: 'var(--space-1)',
+                    'background-color':
+                      'rgb(from var(--neutral-950) r g b / 60%)',
+                    border: 'none',
+                    'border-radius': 'var(--space-1)',
+                    cursor: 'pointer',
+                    opacity: '0',
+                    color: 'white',
+                    'line-height': '0',
+                    width: '1.5rem',
+                    height: '1.5rem',
+                    display: 'flex',
+                    'align-items': 'center',
+                    'justify-content': 'center',
+                  }}
+                  onClick={(e) => {
+                    handleDeleteRecent(e, recent.id)
+                  }}
+                  title="Delete"
+                >
+                  <Cross />
+                </button>
+              </button>
+            )}
+          </For>
+        </section>
+      </Show>
       <h2>Example Gallery</h2>
       <section class={ui.gallery}>
         <For each={recordEntries(examples)}>
@@ -146,17 +217,18 @@ export function createLoadFlame(history: ChangeHistory<FlameDescriptor>) {
   const requestModal = useRequestModal()
   const [loadModalIsOpen, setLoadModalIsOpen] = createSignal(false)
 
-  async function showLoadFlameModal() {
+  async function showLoadFlameModal(): Promise<FlameDescriptor | undefined> {
     setLoadModalIsOpen(true)
     const result = await requestModal<FlameDescriptor | typeof CANCEL>({
       content: ({ respond }) => <LoadFlameModal respond={respond} />,
     })
     setLoadModalIsOpen(false)
     if (result === CANCEL) {
-      return
+      return undefined
     }
     // structuredClone required in order to not modify the original, as store in solidjs does
     history.replace(structuredClone(result))
+    return result
   }
 
   return {

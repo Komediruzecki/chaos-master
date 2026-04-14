@@ -20,6 +20,7 @@ import { createShareLinkModal } from './components/ShareLinkModal/ShareLinkModal
 import { Slider } from './components/Sliders/Slider'
 import { createVariationSelector } from './components/VariationSelector/VariationSelector'
 import { ViewControls } from './components/ViewControls/ViewControls'
+import { WelcomeScreen } from './components/WelcomeScreen/WelcomeScreen'
 import { ChangeHistoryContextProvider } from './contexts/ChangeHistoryContext'
 import { ThemeContextProvider, useTheme } from './contexts/ThemeContext'
 import { DEFAULT_POINT_COUNT, DEFAULT_QUALITY, DEFAULT_RENDER_INTERVAL_MS, DEFAULT_RESOLUTION, } from './defaults'
@@ -39,6 +40,7 @@ import { WheelZoomCamera2D } from './lib/WheelZoomCamera2D'
 import { createStoreHistory } from './utils/createStoreHistory'
 import { addFlameDataToPng } from './utils/flameInPng'
 import { compressJsonQueryParam, decodeJsonQueryParam, } from './utils/jsonQueryParam'
+import { saveRecentFlame } from './utils/recentFlames'
 import { sum } from './utils/sum'
 import { useKeyboardShortcuts } from './utils/useKeyboardShortcuts'
 import { useLoadFlameFromFile } from './utils/useLoadFlameFromFile'
@@ -189,6 +191,7 @@ function App(props: AppProps) {
       const pngBytes = new Uint8Array(imgData)
       const encodedFlames = await compressJsonQueryParam(flameDescriptor)
       const imgExtData = addFlameDataToPng(encodedFlames, pngBytes)
+      saveRecentFlame(flameDescriptor)
       const fileUrlExt = URL.createObjectURL(imgExtData)
       const downloadLink = window.document.createElement('a')
       downloadLink.href = fileUrlExt
@@ -600,6 +603,16 @@ function App(props: AppProps) {
                 <button
                   class={ui.addFlameButton}
                   onClick={() => {
+                    saveRecentFlame(flameDescriptor)
+                  }}
+                >
+                  Save for Later
+                </button>
+              </Card>
+              <Card class={ui.buttonCard}>
+                <button
+                  class={ui.addFlameButton}
+                  onClick={() => {
                     setOnExportImage(() => exportCanvasImage)
                   }}
                 >
@@ -633,6 +646,14 @@ export function Wrappers() {
     return undefined
   })
 
+  const wrappersHistoryTuple = createStoreHistory(
+    createStore(structuredClone(example1)),
+  )
+  const [wrappersHistory, , wrappersHistoryActions] =
+    wrappersHistoryTuple
+  const [showWelcome, setShowWelcome] = createSignal(true)
+  const showLoadFlameModal = createLoadFlame(wrappersHistoryActions).showLoadFlameModal
+
   const errorHandler = (err: unknown, _: () => void) => {
     if (err instanceof Error) {
       if (err.cause === 'WebGPU') {
@@ -653,7 +674,36 @@ export function Wrappers() {
             }}
           >
             <Suspense>
-              <Show when={flameFromQuery.state === 'ready'}>
+              <Show
+                when={flameFromQuery.state === 'ready'}
+                fallback={
+                  <Show
+                    when={showWelcome()}
+                    fallback={
+                      <App
+                        flameFromQuery={wrappersHistory}
+                      />
+                    }
+                  >
+                    <WelcomeScreen
+                      onLoadFlame={(flame) => {
+                        wrappersHistoryActions.replace(structuredClone(flame))
+                        setShowWelcome(false)
+                      }}
+                      onNewFlame={() => {
+                        wrappersHistoryActions.replace(structuredClone(example1))
+                        setShowWelcome(false)
+                      }}
+                      onOpenLoadModal={async () => {
+                        const result = await showLoadFlameModal()
+                        if (result !== undefined) {
+                          setShowWelcome(false)
+                        }
+                      }}
+                    />
+                  </Show>
+                }
+              >
                 <App flameFromQuery={flameFromQuery()} />
               </Show>
             </Suspense>
