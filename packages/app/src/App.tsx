@@ -680,11 +680,7 @@ export function Wrappers() {
                 fallback={
                   <Show
                     when={showWelcome()}
-                    fallback={
-                      <App
-                        flameFromQuery={wrappersHistory}
-                      />
-                    }
+                    fallback={<App flameFromQuery={wrappersHistory} />}
                   >
                     <WelcomeScreen
                       history={wrappersHistoryActions}
@@ -707,7 +703,29 @@ export function Wrappers() {
                   </Show>
                 }
               >
-                <App flameFromQuery={flameFromQuery()} />
+                <Show
+                  when={showWelcome()}
+                  fallback={<App flameFromQuery={flameFromQuery()} />}
+                >
+                  <WelcomeScreen
+                    history={wrappersHistoryActions}
+                    showDontShowAgain={dontShowAgain()}
+                    onDontShowAgainChange={(checked) => {
+                      setDontShowAgain(checked)
+                      if (checked) {
+                        dismissWelcome()
+                      }
+                    }}
+                    onLoadFlame={(flame) => {
+                      wrappersHistoryActions.replace(structuredClone(flame))
+                      setShowWelcome(false)
+                    }}
+                    onNewFlame={() => {
+                      wrappersHistoryActions.replace(structuredClone(example1))
+                      setShowWelcome(false)
+                    }}
+                  />
+                </Show>
               </Show>
             </Suspense>
           </Root>
