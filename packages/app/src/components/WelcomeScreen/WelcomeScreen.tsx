@@ -1,3 +1,4 @@
+import { Portal } from 'solid-js/web'
 import { vec2f, vec4f } from 'typegpu/data'
 import { DEFAULT_QUALITY } from '@/defaults'
 import { example1 } from '@/flame/examples/example1'
@@ -7,25 +8,6 @@ import { Camera2D } from '@/lib/Camera2D'
 import { Root } from '@/lib/Root'
 import ui from './WelcomeScreen.module.css'
 
-function ArrowRight() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <path d="M5 12h14" />
-      <path d="m12 5 7 7-7 7" />
-    </svg>
-  )
-}
-
 type WelcomeScreenProps = {
   showDontShowAgain?: boolean
   onDontShowAgainChange?: (checked: boolean, ev: Event) => void
@@ -34,11 +16,7 @@ type WelcomeScreenProps = {
 
 function ExamplePreview() {
   return (
-    <Root
-      adapterOptions={{
-        powerPreference: 'high-performance',
-      }}
-    >
+    <Root adapterOptions={{ powerPreference: 'high-performance' }}>
       <AutoCanvas pixelRatio={1}>
         <Camera2D
           position={vec2f(...example1.renderSettings.camera.position)}
@@ -59,51 +37,74 @@ function ExamplePreview() {
   )
 }
 
+function ArrowRight() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M5 12h14" />
+      <path d="m12 5 7 7-7 7" />
+    </svg>
+  )
+}
+
 export function WelcomeScreen(props: WelcomeScreenProps) {
   return (
-    <div class={ui['welcome-backdrop']}>
-      <div class={ui['welcome-card']}>
-        <button
-          class={ui['welcome-preview']}
-          onClick={props.onEnter}
-          title="Click to enter"
-        >
-          <ExamplePreview />
-          <div class={ui['preview-overlay']}>Click to explore</div>
-        </button>
+    <Portal>
+      <div class={ui.backdrop}>
+        <div class={ui.card}>
+          <button
+            class={ui.preview}
+            onClick={props.onEnter}
+            title="Click to enter"
+          >
+            <ExamplePreview />
+            <div class={ui.overlay}>Click to explore</div>
+          </button>
 
-        <div class={ui['welcome-content']}>
-          <div class={ui['branding']}>
-            <h1 class={ui['logo-title']}>Chaos Master</h1>
-            <p class={ui['logo-subtitle']}>
-              Create beautiful fractal flames with WebGPU
-            </p>
-          </div>
+          <div class={ui.content}>
+            <div>
+              <h1 class={ui.title}>Chaos Master</h1>
+              <p class={ui.subtitle}>
+                Create beautiful fractal flames with WebGPU
+              </p>
+            </div>
 
-          <div class={ui['tagline']}>
-            <h2 class={ui['tagline-title']}>Welcome to Chaos</h2>
-            <p class={ui['tagline-body']}>Are you ready to create something beautiful?</p>
-          </div>
+            <div class={ui.tagline}>
+              <h2 class={ui['tagline-title']}>Welcome to Chaos</h2>
+              <p class={ui['tagline-body']}>
+                Are you ready to create something beautiful?
+              </p>
+            </div>
 
-          <div class={ui['welcome-actions']}>
-            <label class={ui['dont-show-again']}>
-              <input
-                type="checkbox"
-                checked={props.showDontShowAgain ?? false}
-                onChange={(ev) => {
-                  props.onDontShowAgainChange?.(ev.target.checked, ev)
-                }}
-              />
-              <span>Don't show on startup</span>
-            </label>
+            <div class={ui.actions}>
+              <label class={ui['dont-show']}>
+                <input
+                  type="checkbox"
+                  checked={props.showDontShowAgain ?? false}
+                  onChange={(ev) => {
+                    props.onDontShowAgainChange?.(ev.target.checked, ev)
+                  }}
+                />
+                <span>Don't show on startup</span>
+              </label>
 
-            <button class={ui['enter-button']} onClick={props.onEnter}>
-              Enter
-              <ArrowRight />
-            </button>
+              <button class={ui['enter-btn']} onClick={props.onEnter}>
+                Enter
+                <ArrowRight />
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Portal>
   )
 }
