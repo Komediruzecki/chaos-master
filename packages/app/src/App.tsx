@@ -674,41 +674,20 @@ export function Wrappers() {
             }}
           >
             <Suspense>
-              <Show
-                when={flameFromQuery.state === 'ready'}
-                fallback={
-                  <Show
-                    when={showWelcome()}
-                    fallback={<App flameFromQuery={wrappersHistory} />}
-                  >
-                    <WelcomeScreen
-                      showDontShowAgain={dontShowAgain()}
-                      onDontShowAgainChange={(checked) => {
-                        setDontShowAgain(checked)
-                        if (checked) {
-                          dismissWelcome()
-                        }
-                      }}
-                      onEnter={() => setShowWelcome(false)}
-                    />
-                  </Show>
-                }
-              >
-                <Show
-                  when={showWelcome()}
-                  fallback={<App flameFromQuery={flameFromQuery()} />}
-                >
-                  <WelcomeScreen
-                    showDontShowAgain={dontShowAgain()}
-                    onDontShowAgainChange={(checked) => {
-                      setDontShowAgain(checked)
-                      if (checked) {
-                        dismissWelcome()
-                      }
-                    }}
-                    onEnter={() => setShowWelcome(false)}
-                  />
-                </Show>
+              {/* Always render App in background */}
+              <App flameFromQuery={flameFromQuery()} />
+              {/* WelcomeScreen overlay on top */}
+              <Show when={showWelcome()}>
+                <WelcomeScreen
+                  showDontShowAgain={dontShowAgain()}
+                  onDontShowAgainChange={(checked) => {
+                    setDontShowAgain(checked)
+                    if (checked) {
+                      dismissWelcome()
+                    }
+                  }}
+                  onEnter={() => setShowWelcome(false)}
+                />
               </Show>
             </Suspense>
           </Root>
