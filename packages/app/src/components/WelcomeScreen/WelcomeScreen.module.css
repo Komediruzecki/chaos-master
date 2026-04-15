@@ -30,9 +30,11 @@
   --glow-4: #fb5607;
 
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto;
   max-width: 56rem;
   width: 90vw;
+  min-height: 320px;
   background: linear-gradient(
     145deg,
     rgba(20, 20, 30, 0.95) 0%,
@@ -118,23 +120,26 @@
 .preview {
   position: relative;
   cursor: pointer;
-  aspect-ratio: 16 / 10;
+  height: 100%;
+  min-height: 100%;
   overflow: hidden;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
 }
 
-.preview::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    circle at 50% 50%,
-    rgba(255, 0, 110, 0.1) 0%,
-    transparent 70%
-  );
-  animation: pulse 4s ease-in-out infinite;
-  pointer-events: none;
+.preview > div,
+.preview > div > div,
+.preview canvas {
+  height: 100% !important;
+  min-height: 100% !important;
+  width: 100%;
+}
+
+.preview :global(.auto-canvas),
+.preview :global(canvas) {
+  height: 100% !important;
+  min-height: 100% !important;
 }
 
 @keyframes pulse {
@@ -183,6 +188,7 @@
   padding: 2.5rem;
   gap: 1.75rem;
   position: relative;
+  min-height: 100%;
 }
 
 .title {
