@@ -650,8 +650,7 @@ export function Wrappers() {
   const wrappersHistoryTuple = createStoreHistory(
     createStore(structuredClone(example1)),
   )
-  const [wrappersHistory, , wrappersHistoryActions] =
-    wrappersHistoryTuple
+  const [wrappersHistory] = wrappersHistoryTuple
   const [dontShowAgain, setDontShowAgain] = createSignal(false)
   const [showWelcome, setShowWelcome] = createSignal(!hasWelcomeBeenDismissed())
 
@@ -683,7 +682,6 @@ export function Wrappers() {
                     fallback={<App flameFromQuery={wrappersHistory} />}
                   >
                     <WelcomeScreen
-                      history={wrappersHistoryActions}
                       showDontShowAgain={dontShowAgain()}
                       onDontShowAgainChange={(checked) => {
                         setDontShowAgain(checked)
@@ -691,14 +689,7 @@ export function Wrappers() {
                           dismissWelcome()
                         }
                       }}
-                      onLoadFlame={(flame) => {
-                        wrappersHistoryActions.replace(structuredClone(flame))
-                        setShowWelcome(false)
-                      }}
-                      onNewFlame={() => {
-                        wrappersHistoryActions.replace(structuredClone(example1))
-                        setShowWelcome(false)
-                      }}
+                      onEnter={() => setShowWelcome(false)}
                     />
                   </Show>
                 }
@@ -708,7 +699,6 @@ export function Wrappers() {
                   fallback={<App flameFromQuery={flameFromQuery()} />}
                 >
                   <WelcomeScreen
-                    history={wrappersHistoryActions}
                     showDontShowAgain={dontShowAgain()}
                     onDontShowAgainChange={(checked) => {
                       setDontShowAgain(checked)
@@ -716,14 +706,7 @@ export function Wrappers() {
                         dismissWelcome()
                       }
                     }}
-                    onLoadFlame={(flame) => {
-                      wrappersHistoryActions.replace(structuredClone(flame))
-                      setShowWelcome(false)
-                    }}
-                    onNewFlame={() => {
-                      wrappersHistoryActions.replace(structuredClone(example1))
-                      setShowWelcome(false)
-                    }}
+                    onEnter={() => setShowWelcome(false)}
                   />
                 </Show>
               </Show>
