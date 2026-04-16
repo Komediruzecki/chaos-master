@@ -1,6 +1,7 @@
 import { For, Show } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { vec2f, vec4f } from 'typegpu/data'
+import { DEFAULT_VARIATION_PREVIEW_POINT_COUNT } from '@/defaults'
 import { examples } from '@/flame/examples'
 import { Flam3 } from '@/flame/Flam3'
 import { AutoCanvas } from '@/lib/AutoCanvas'
@@ -42,7 +43,7 @@ function FlameThumbnail(props: {
           >
             <Flam3
               quality={1}
-              pointCountPerBatch={1000}
+              pointCountPerBatch={DEFAULT_VARIATION_PREVIEW_POINT_COUNT}
               adaptiveFilterEnabled={false}
               flameDescriptor={props.flame}
               renderInterval={1}
