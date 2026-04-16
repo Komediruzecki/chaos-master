@@ -37,25 +37,6 @@ function ExamplePreview() {
   )
 }
 
-function ArrowRight() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <path d="M5 12h14" />
-      <path d="m12 5 7 7-7 7" />
-    </svg>
-  )
-}
-
 export function WelcomeScreen(props: WelcomeScreenProps) {
   return (
     <Portal>
@@ -99,7 +80,6 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
 
               <button class={ui['enter-btn']} onClick={props.onEnter}>
                 Enter
-                <ArrowRight />
               </button>
             </div>
           </div>
