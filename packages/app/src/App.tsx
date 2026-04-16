@@ -647,10 +647,6 @@ export function Wrappers() {
     return undefined
   })
 
-  const wrappersHistoryTuple = createStoreHistory(
-    createStore(structuredClone(example1)),
-  )
-  const [wrappersHistory] = wrappersHistoryTuple
   const [dontShowAgain, setDontShowAgain] = createSignal(false)
   const [showWelcome, setShowWelcome] = createSignal(!hasWelcomeBeenDismissed())
 
