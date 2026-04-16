@@ -20,6 +20,7 @@ import { createShareLinkModal } from './components/ShareLinkModal/ShareLinkModal
 import { Slider } from './components/Sliders/Slider'
 import { createVariationSelector } from './components/VariationSelector/VariationSelector'
 import { ViewControls } from './components/ViewControls/ViewControls'
+import { WelcomeScreen } from './components/WelcomeScreen/WelcomeScreen'
 import { ChangeHistoryContextProvider } from './contexts/ChangeHistoryContext'
 import { ThemeContextProvider, useTheme } from './contexts/ThemeContext'
 import { DEFAULT_POINT_COUNT, DEFAULT_QUALITY, DEFAULT_RENDER_INTERVAL_MS, DEFAULT_RESOLUTION, } from './defaults'
@@ -39,9 +40,11 @@ import { WheelZoomCamera2D } from './lib/WheelZoomCamera2D'
 import { createStoreHistory } from './utils/createStoreHistory'
 import { addFlameDataToPng } from './utils/flameInPng'
 import { compressJsonQueryParam, decodeJsonQueryParam, } from './utils/jsonQueryParam'
+import { saveRecentFlame } from './utils/recentFlames'
 import { sum } from './utils/sum'
 import { useKeyboardShortcuts } from './utils/useKeyboardShortcuts'
 import { useLoadFlameFromFile } from './utils/useLoadFlameFromFile'
+import { dismissWelcome, hasWelcomeBeenDismissed, } from './utils/welcomeDismissed'
 import type { Setter } from 'solid-js'
 import type { v2f } from 'typegpu/data'
 import type { QualityPreset } from './components/Quality/QualityPresets'
@@ -77,6 +80,7 @@ export type ExportImageType = (canvas: HTMLCanvasElement) => void
 
 type AppProps = {
   flameFromQuery?: FlameDescriptor
+  flameFromWelcome?: () => FlameDescriptor | undefined
 }
 
 function App(props: AppProps) {
@@ -90,7 +94,9 @@ function App(props: AppProps) {
   const [showSidebar, setShowSidebar] = createSignal(true)
   const [flameDescriptor, setFlameDescriptor, history] = createStoreHistory(
     createStore(
-      structuredClone(props.flameFromQuery ? props.flameFromQuery : example1),
+      structuredClone(
+        props.flameFromWelcome?.() ?? props.flameFromQuery ?? example1,
+      ),
     ),
   )
   const totalProbability = createMemo(() =>
@@ -189,6 +195,7 @@ function App(props: AppProps) {
       const pngBytes = new Uint8Array(imgData)
       const encodedFlames = await compressJsonQueryParam(flameDescriptor)
       const imgExtData = addFlameDataToPng(encodedFlames, pngBytes)
+      saveRecentFlame(flameDescriptor)
       const fileUrlExt = URL.createObjectURL(imgExtData)
       const downloadLink = window.document.createElement('a')
       downloadLink.href = fileUrlExt
@@ -218,7 +225,7 @@ function App(props: AppProps) {
         <>
           <div
             class={ui.canvasContainer}
-            classList={{ [ui.fullscreen]: !showSidebar() }}
+            classList={{ [ui.fullscreen as string]: !showSidebar() }}
           >
             <AutoCanvas class={ui.canvas} pixelRatio={pixelRatio()}>
               <WheelZoomCamera2D
@@ -311,8 +318,8 @@ function App(props: AppProps) {
                   </button>
                   <div
                     classList={{
-                      [ui.transformGridRow]: true,
-                      [ui.transformGridFirstRow]: true,
+                      [ui.transformGridRow as string]: true,
+                      [ui.transformGridFirstRow as string]: true,
                     }}
                   >
                     <Slider
@@ -600,6 +607,16 @@ function App(props: AppProps) {
                 <button
                   class={ui.addFlameButton}
                   onClick={() => {
+                    saveRecentFlame(flameDescriptor)
+                  }}
+                >
+                  Save for Later
+                </button>
+              </Card>
+              <Card class={ui.buttonCard}>
+                <button
+                  class={ui.addFlameButton}
+                  onClick={() => {
                     setOnExportImage(() => exportCanvasImage)
                   }}
                 >
@@ -633,6 +650,12 @@ export function Wrappers() {
     return undefined
   })
 
+  const [dontShowAgain, setDontShowAgain] = createSignal(false)
+  const [showWelcome, setShowWelcome] = createSignal(!hasWelcomeBeenDismissed())
+  const [selectedFlame, setSelectedFlame] = createSignal<
+    FlameDescriptor | undefined
+  >()
+
   const errorHandler = (err: unknown, _: () => void) => {
     if (err instanceof Error) {
       if (err.cause === 'WebGPU') {
@@ -653,8 +676,24 @@ export function Wrappers() {
             }}
           >
             <Suspense>
-              <Show when={flameFromQuery.state === 'ready'}>
-                <App flameFromQuery={flameFromQuery()} />
+              {/* Always render App in background */}
+              <App
+                flameFromQuery={flameFromQuery()}
+                flameFromWelcome={selectedFlame}
+              />
+              {/* WelcomeScreen overlay on top */}
+              <Show when={showWelcome()}>
+                <WelcomeScreen
+                  showDontShowAgain={dontShowAgain()}
+                  onDontShowAgainChange={(checked) => {
+                    setDontShowAgain(checked)
+                    if (checked) {
+                      dismissWelcome()
+                    }
+                  }}
+                  onEnter={() => setShowWelcome(false)}
+                  onSelectFlame={(flame) => setSelectedFlame(() => flame)}
+                />
               </Show>
             </Suspense>
           </Root>
