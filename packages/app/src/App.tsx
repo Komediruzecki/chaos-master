@@ -44,7 +44,7 @@ import { saveRecentFlame } from './utils/recentFlames'
 import { sum } from './utils/sum'
 import { useKeyboardShortcuts } from './utils/useKeyboardShortcuts'
 import { useLoadFlameFromFile } from './utils/useLoadFlameFromFile'
-import { dismissWelcome,hasWelcomeBeenDismissed } from './utils/welcomeDismissed'
+import { dismissWelcome, hasWelcomeBeenDismissed, } from './utils/welcomeDismissed'
 import type { Setter } from 'solid-js'
 import type { v2f } from 'typegpu/data'
 import type { QualityPreset } from './components/Quality/QualityPresets'
@@ -80,6 +80,7 @@ export type ExportImageType = (canvas: HTMLCanvasElement) => void
 
 type AppProps = {
   flameFromQuery?: FlameDescriptor
+  flameFromWelcome?: () => FlameDescriptor | undefined
 }
 
 function App(props: AppProps) {
@@ -93,7 +94,9 @@ function App(props: AppProps) {
   const [showSidebar, setShowSidebar] = createSignal(true)
   const [flameDescriptor, setFlameDescriptor, history] = createStoreHistory(
     createStore(
-      structuredClone(props.flameFromQuery ? props.flameFromQuery : example1),
+      structuredClone(
+        props.flameFromWelcome?.() ?? props.flameFromQuery ?? example1,
+      ),
     ),
   )
   const totalProbability = createMemo(() =>
@@ -649,6 +652,9 @@ export function Wrappers() {
 
   const [dontShowAgain, setDontShowAgain] = createSignal(false)
   const [showWelcome, setShowWelcome] = createSignal(!hasWelcomeBeenDismissed())
+  const [selectedFlame, setSelectedFlame] = createSignal<
+    FlameDescriptor | undefined
+  >()
 
   const errorHandler = (err: unknown, _: () => void) => {
     if (err instanceof Error) {
@@ -671,7 +677,10 @@ export function Wrappers() {
           >
             <Suspense>
               {/* Always render App in background */}
-              <App flameFromQuery={flameFromQuery()} />
+              <App
+                flameFromQuery={flameFromQuery()}
+                flameFromWelcome={selectedFlame}
+              />
               {/* WelcomeScreen overlay on top */}
               <Show when={showWelcome()}>
                 <WelcomeScreen
@@ -683,6 +692,7 @@ export function Wrappers() {
                     }
                   }}
                   onEnter={() => setShowWelcome(false)}
+                  onSelectFlame={(flame) => setSelectedFlame(() => flame)}
                 />
               </Show>
             </Suspense>

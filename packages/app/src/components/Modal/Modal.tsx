@@ -84,7 +84,7 @@ export function Modal(props: ParentProps<ModalProps>) {
       <Portal
         mount={props.mount}
         ref={(el) => {
-          (el as HTMLElement).classList.add(ui.root!)
+          ;(el as HTMLElement).classList.add(ui.root!)
         }}
       >
         <Show when={modalInstances()[0]} keyed>

@@ -41,10 +41,7 @@ export function loadRecentFlames(): RecentFlame[] {
   }
 }
 
-export function saveRecentFlame(
-  flame: FlameDescriptor,
-  name?: string,
-): void {
+export function saveRecentFlame(flame: FlameDescriptor, name?: string): void {
   const recent = loadRecentFlames()
   const id = generateId()
   const entry: RecentFlame = {
