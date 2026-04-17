@@ -30,6 +30,7 @@ import { applyColorMapToFlame } from './flame/colorMap'
 import { drawModeToImplFn } from './flame/drawMode'
 import { example1 } from './flame/examples/example1'
 import { Flam3 } from './flame/Flam3'
+import { pointInitModeToImplFn } from './flame/pointInitMode'
 import { accumulatedPointCount, qualityPointCountLimit, setCurrentQuality, setQualityPointCountLimit, } from './flame/renderStats'
 import { MAX_CAMERA_ZOOM_VALUE, MIN_CAMERA_ZOOM_VALUE, } from './flame/schema/flameSchema'
 import { generateTransformId, generateVariationId, } from './flame/transformFunction'
@@ -53,6 +54,7 @@ import type { QualityPreset } from './components/Quality/QualityPresets'
 import type { ColorInitMode } from './flame/colorInitMode'
 import type { ColorMap, Palette } from './flame/colorMap'
 import type { DrawMode } from './flame/drawMode'
+import type { PointInitMode } from './flame/pointInitMode'
 import type { FlameDescriptor, TransformFunction, } from './flame/schema/flameSchema'
 
 const EDGE_FADE_COLOR = {
@@ -565,6 +567,28 @@ function App(props: AppProps) {
                   <For each={recordKeys(colorInitModeToImplFn)}>
                     {(colorInitMode) => (
                       <option value={colorInitMode}>{colorInitMode}</option>
+                    )}
+                  </For>
+                </select>
+                <span></span>
+              </label>
+              <label class={ui.labeledInput}>
+                <span>Point Init</span>
+                <select
+                  class={ui.select}
+                  value={flameDescriptor.renderSettings.pointInitMode}
+                  onChange={(ev) => {
+                    const mode = ev.currentTarget.value as PointInitMode
+                    document.startViewTransition(() => {
+                      setFlameDescriptor((draft) => {
+                        draft.renderSettings.pointInitMode = mode
+                      })
+                    })
+                  }}
+                >
+                  <For each={recordKeys(pointInitModeToImplFn)}>
+                    {(pointInitMode) => (
+                      <option value={pointInitMode}>{pointInitMode}</option>
                     )}
                   </For>
                 </select>

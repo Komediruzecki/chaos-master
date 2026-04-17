@@ -7,7 +7,7 @@ import { tgpu } from 'typegpu'
 import { u32, vec2f, vec2u } from 'typegpu/data'
 import { bitcastU32toF32, cos, mul, sin, sqrt } from 'typegpu/std'
 import { PI } from '@/flame/constants'
-import type { v2u } from 'typegpu/data'
+import type { f32, v2u } from 'typegpu/data'
 
 export const randomState = tgpu.privateVar(vec2u, vec2u(0, 0))
 
@@ -65,3 +65,63 @@ export const randomUnitDisk = tgpu.fn(
   const theta = random() * 2 * PI.$
   return mul(r, vec2f(cos(theta), sin(theta)))
 })
+
+export const randomUnitSquare = tgpu.fn(
+  [],
+  vec2f,
+)(() => {
+  return vec2f(random(), random()).sub(vec2f(0.5, 0.5)).mul(2)
+})
+
+export const randomGaussianDisk = tgpu.fn(
+  [],
+  vec2f,
+)(() => {
+  // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+  const r =
+    gaussianRandom() +
+    gaussianRandom() +
+    gaussianRandom() +
+    gaussianRandom() -
+    2
+  const theta = random() * 2 * PI.$
+  return vec2f(cos(theta), sin(theta)).mul(r)
+})
+
+export const randomGaussianSquare = tgpu.fn(
+  [],
+  vec2f,
+)(() => {
+  // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+  return vec2f(gaussianRandom(), gaussianRandom())
+})
+
+export const randomUniformCircle = tgpu.fn(
+  [],
+  vec2f,
+)(() => {
+  const r = sqrt(random())
+  const theta = random() * 2 * PI.$
+  return mul(r, vec2f(cos(theta), sin(theta)))
+})
+
+export const randomGaussianCircle = tgpu.fn(
+  [],
+  vec2f,
+)(() => {
+  // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+  const r =
+    gaussianRandom() +
+    gaussianRandom() +
+    gaussianRandom() +
+    gaussianRandom() -
+    2
+  const theta = random() * 2 * PI.$
+  return vec2f(cos(theta), sin(theta)).mul(r)
+})
+
+function gaussianRandom(): f32 {
+  'use gpu'
+  // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+  return random() + random() + random() + random() - 2
+}
