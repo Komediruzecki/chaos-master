@@ -142,8 +142,8 @@ export function applyColorMap(
         {
           ...transform,
           color: {
-            x: colorMap.colors[index % colorMap.colors.length].a,
-            y: colorMap.colors[index % colorMap.colors.length].b,
+            x: colorMap.colors[index % colorMap.colors.length]!.a,
+            y: colorMap.colors[index % colorMap.colors.length]!.b,
           },
         },
       ]),

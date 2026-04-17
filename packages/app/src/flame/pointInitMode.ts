@@ -3,10 +3,7 @@ import { vec2f } from 'typegpu/data'
 import { randomGaussianCircle, randomGaussianDisk, randomGaussianSquare, randomUnitDisk, randomUnitSquare, } from '@/shaders/random'
 import { recordKeys } from '@/utils/record'
 import * as v from '@/valibot'
-import type { TgpuFn } from 'typegpu'
-import type { Vec2f } from 'typegpu/data'
 
-export type PointInitModeFn = TgpuFn<[], Vec2f>
 const pointInitModeFn = tgpu.fn([], vec2f)
 
 export const pointInitModeUnitDisk = pointInitModeFn(() => {
