@@ -8,6 +8,7 @@ import ui from './App.module.css'
 import { AffineEditor } from './components/AffineEditor/AffineEditor'
 import { Button } from './components/Button/Button'
 import { Checkbox } from './components/Checkbox/Checkbox'
+import { ColorMapSelector } from './components/ColorMapSelector/ColorMapSelector'
 import { ColorPicker } from './components/ColorPicker/ColorPicker'
 import { Card } from './components/ControlCard/ControlCard'
 import { Dropzone } from './components/Dropzone/Dropzone'
@@ -25,6 +26,7 @@ import { ChangeHistoryContextProvider } from './contexts/ChangeHistoryContext'
 import { ThemeContextProvider, useTheme } from './contexts/ThemeContext'
 import { DEFAULT_POINT_COUNT, DEFAULT_QUALITY, DEFAULT_RENDER_INTERVAL_MS, DEFAULT_RESOLUTION, } from './defaults'
 import { colorInitModeToImplFn } from './flame/colorInitMode'
+import { applyColorMapToFlame, defaultColorMaps } from './flame/colorMap'
 import { drawModeToImplFn } from './flame/drawMode'
 import { example1 } from './flame/examples/example1'
 import { Flam3 } from './flame/Flam3'
@@ -49,6 +51,7 @@ import type { Setter } from 'solid-js'
 import type { v2f } from 'typegpu/data'
 import type { QualityPreset } from './components/Quality/QualityPresets'
 import type { ColorInitMode } from './flame/colorInitMode'
+import type { ColorMap } from './flame/colorMap'
 import type { DrawMode } from './flame/drawMode'
 import type { FlameDescriptor, TransformFunction, } from './flame/schema/flameSchema'
 
@@ -92,6 +95,9 @@ function App(props: AppProps) {
   const [onExportImage, setOnExportImage] = createSignal<ExportImageType>()
   const [adaptiveFilterEnabled, setAdaptiveFilterEnabled] = createSignal(true)
   const [showSidebar, setShowSidebar] = createSignal(true)
+  const [selectedColorMapId, setSelectedColorMapId] = createSignal(
+    defaultColorMaps[0]!.id,
+  )
   const [flameDescriptor, setFlameDescriptor, history] = createStoreHistory(
     createStore(
       structuredClone(
@@ -114,6 +120,13 @@ function App(props: AppProps) {
         : DEFAULT_RENDER_INTERVAL_MS
 
   const { showShareLinkModal } = createShareLinkModal(flameDescriptor)
+
+  const handleColorMapSelect = (colorMap: ColorMap) => {
+    setSelectedColorMapId(colorMap.id)
+    setFlameDescriptor((draft) => {
+      applyColorMapToFlame(draft, colorMap)
+    })
+  }
 
   const setFlameZoom: Setter<number> = (value) => {
     if (typeof value === 'function') {
@@ -283,6 +296,10 @@ function App(props: AppProps) {
                   setFn(draft.transforms)
                 })
               }}
+            />
+            <ColorMapSelector
+              selectedColorMapId={selectedColorMapId()}
+              onSelect={handleColorMapSelect}
             />
             <For each={recordEntries(flameDescriptor.transforms)}>
               {([tid, transform]) => (
