@@ -106,6 +106,13 @@ function App(props: AppProps) {
       ),
     ),
   )
+  createEffect(() => {
+    const newFlame = props.flameFromWelcome?.()
+    if (newFlame !== undefined) {
+      history.replace(structuredClone(newFlame))
+    }
+  })
+
   const totalProbability = createMemo(() =>
     sum(Object.values(flameDescriptor.transforms).map((f) => f.probability)),
   )
