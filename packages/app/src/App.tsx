@@ -8,7 +8,6 @@ import ui from './App.module.css'
 import { AffineEditor } from './components/AffineEditor/AffineEditor'
 import { Button } from './components/Button/Button'
 import { Checkbox } from './components/Checkbox/Checkbox'
-import { ColorMapSelector } from './components/ColorMapSelector/ColorMapSelector'
 import { ColorPicker } from './components/ColorPicker/ColorPicker'
 import { Card } from './components/ControlCard/ControlCard'
 import { Dropzone } from './components/Dropzone/Dropzone'
@@ -16,6 +15,7 @@ import { AppCrashed, WebgpuNotSupported, } from './components/ErrorHandling/Erro
 import { FlameColorEditor, handleColor, } from './components/FlameColorEditor/FlameColorEditor'
 import { createLoadFlame } from './components/LoadFlameModal/LoadFlameModal'
 import { Modal } from './components/Modal/Modal'
+import { PaletteSelector } from './components/PaletteSelector/PaletteSelector'
 import { getPresetFromQuality, QualityPresets, qualityPresets, } from './components/Quality/QualityPresets'
 import { createShareLinkModal } from './components/ShareLinkModal/ShareLinkModal'
 import { Slider } from './components/Sliders/Slider'
@@ -26,7 +26,7 @@ import { ChangeHistoryContextProvider } from './contexts/ChangeHistoryContext'
 import { ThemeContextProvider, useTheme } from './contexts/ThemeContext'
 import { DEFAULT_POINT_COUNT, DEFAULT_QUALITY, DEFAULT_RENDER_INTERVAL_MS, DEFAULT_RESOLUTION, } from './defaults'
 import { colorInitModeToImplFn } from './flame/colorInitMode'
-import { applyColorMapToFlame, defaultColorMaps } from './flame/colorMap'
+import { applyColorMapToFlame } from './flame/colorMap'
 import { drawModeToImplFn } from './flame/drawMode'
 import { example1 } from './flame/examples/example1'
 import { Flam3 } from './flame/Flam3'
@@ -51,7 +51,7 @@ import type { Setter } from 'solid-js'
 import type { v2f } from 'typegpu/data'
 import type { QualityPreset } from './components/Quality/QualityPresets'
 import type { ColorInitMode } from './flame/colorInitMode'
-import type { ColorMap } from './flame/colorMap'
+import type { ColorMap, Palette } from './flame/colorMap'
 import type { DrawMode } from './flame/drawMode'
 import type { FlameDescriptor, TransformFunction, } from './flame/schema/flameSchema'
 
@@ -95,9 +95,8 @@ function App(props: AppProps) {
   const [onExportImage, setOnExportImage] = createSignal<ExportImageType>()
   const [adaptiveFilterEnabled, setAdaptiveFilterEnabled] = createSignal(true)
   const [showSidebar, setShowSidebar] = createSignal(true)
-  const [selectedColorMapId, setSelectedColorMapId] = createSignal(
-    defaultColorMaps[0]!.id,
-  )
+  const [selectedPaletteId, setSelectedPaletteId] =
+    createSignal<string>('default')
   const [flameDescriptor, setFlameDescriptor, history] = createStoreHistory(
     createStore(
       structuredClone(
@@ -121,8 +120,15 @@ function App(props: AppProps) {
 
   const { showShareLinkModal } = createShareLinkModal(flameDescriptor)
 
-  const handleColorMapSelect = (colorMap: ColorMap) => {
-    setSelectedColorMapId(colorMap.id)
+  const handlePaletteSelect = (palette: Palette) => {
+    setSelectedPaletteId(palette.id)
+    // Convert palette entries to color map entries and apply
+    const entries = palette.entries.map((entry) => ({ a: entry.a, b: entry.b }))
+    const colorMap: ColorMap = {
+      id: palette.id,
+      name: palette.name,
+      entries,
+    }
     setFlameDescriptor((draft) => {
       applyColorMapToFlame(draft, colorMap)
     })
@@ -297,9 +303,9 @@ function App(props: AppProps) {
                 })
               }}
             />
-            <ColorMapSelector
-              selectedColorMapId={selectedColorMapId()}
-              onSelect={handleColorMapSelect}
+            <PaletteSelector
+              selectedPaletteId={selectedPaletteId()}
+              onSelect={handlePaletteSelect}
             />
             <For each={recordEntries(flameDescriptor.transforms)}>
               {([tid, transform]) => (

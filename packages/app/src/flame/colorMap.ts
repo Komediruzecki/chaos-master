@@ -31,6 +31,193 @@ export type ColorMap = {
   description?: string
 }
 
+/** Storage type for palette data */
+export type PaletteEntry = {
+  id: string
+  /** Position in the gradient (0 to 1) */
+  position: number
+  /** OkLab a channel */
+  a: number
+  /** OkLab b channel */
+  b: number
+}
+
+export type Palette = {
+  id: string
+  name: string
+  entries: PaletteEntry[]
+  /** Source of the palette */
+  source: 'builtin' | 'custom' | 'imported'
+  createdAt?: number
+}
+
+function generatePaletteId(): string {
+  return `palette-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
+}
+
+export function paletteEntry(
+  position: number,
+  a: number,
+  b: number,
+): PaletteEntry {
+  return {
+    id: `entry-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    position,
+    a,
+    b,
+  }
+}
+
+export function palette(
+  id: string,
+  name: string,
+  entries: PaletteEntry[],
+  source: Palette['source'] = 'builtin',
+): Palette {
+  return { id, name, entries, source, createdAt: Date.now() }
+}
+
+/** Convert a palette to ColorMap entries for use with flames */
+export function paletteToColorMap(
+  palette: Palette,
+  count: number = 5,
+): ColorMapEntry[] {
+  const sorted = [...palette.entries].sort((a, b) => a.position - b.position)
+  if (sorted.length === 0) return [{ a: 0, b: 0 }]
+  if (sorted.length === 1) return [{ a: sorted[0]!.a, b: sorted[0]!.b }]
+
+  const entries: ColorMapEntry[] = []
+  for (let i = 0; i < count; i++) {
+    const t = i / (count - 1)
+    entries.push(interpolatePaletteEntry(sorted, t))
+  }
+  return entries
+}
+
+function interpolatePaletteEntry(
+  sorted: PaletteEntry[],
+  t: number,
+): ColorMapEntry {
+  // Find the two entries this t falls between
+  let lower = sorted[0]!
+  let upper = sorted[sorted.length - 1]!
+
+  for (let i = 0; i < sorted.length - 1; i++) {
+    if (t >= sorted[i]!.position && t <= sorted[i + 1]!.position) {
+      lower = sorted[i]!
+      upper = sorted[i + 1]!
+      break
+    }
+  }
+
+  // Interpolate between lower and upper
+  const range = upper.position - lower.position
+  const localT = range > 0 ? (t - lower.position) / range : 0
+
+  return {
+    a: lower.a + (upper.a - lower.a) * localT,
+    b: lower.b + (upper.b - lower.b) * localT,
+  }
+}
+
+/** Convert a palette to a ColorMap */
+export function paletteToColorMap2(palette: Palette, name: string): ColorMap {
+  const entries = paletteToColorMap(
+    palette,
+    Math.max(5, palette.entries.length),
+  )
+  return {
+    id: palette.id,
+    name,
+    entries: entries.map((e, i) => ({ ...e, label: `Stop ${i + 1}` })),
+  }
+}
+
+/** Storage key for custom palettes */
+const CUSTOM_PALETTES_KEY = 'chaos-master-custom-palettes'
+
+/**
+ * Load custom palettes from localStorage
+ */
+export function loadCustomPalettes(): Palette[] {
+  try {
+    const raw = localStorage.getItem(CUSTOM_PALETTES_KEY)
+    if (raw === null || raw === '') return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter(
+      (p): p is Palette =>
+        typeof p === 'object' &&
+        p !== null &&
+        typeof p.id === 'string' &&
+        Array.isArray(p.entries),
+    )
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Save custom palettes to localStorage
+ */
+export function saveCustomPalettes(palettes: Palette[]): void {
+  localStorage.setItem(CUSTOM_PALETTES_KEY, JSON.stringify(palettes))
+}
+
+/**
+ * Add a custom palette
+ */
+export function addCustomPalette(
+  palette: Omit<Palette, 'id' | 'createdAt'>,
+): Palette {
+  const newPalette: Palette = {
+    ...palette,
+    id: generatePaletteId(),
+    createdAt: Date.now(),
+  }
+  const existing = loadCustomPalettes()
+  saveCustomPalettes([...existing, newPalette])
+  return newPalette
+}
+
+/**
+ * Delete a custom palette by ID
+ */
+export function deleteCustomPalette(id: string): void {
+  const existing = loadCustomPalettes()
+  saveCustomPalettes(existing.filter((p) => p.id !== id))
+}
+
+/**
+ * Update a custom palette
+ */
+export function updateCustomPalette(
+  id: string,
+  updates: Partial<Omit<Palette, 'id' | 'createdAt'>>,
+): Palette | null {
+  const existing = loadCustomPalettes()
+  const idx = existing.findIndex((p) => p.id === id)
+  if (idx === -1) return null
+
+  const updated: Palette = {
+    ...existing[idx]!,
+    ...updates,
+  }
+  existing[idx] = updated
+  saveCustomPalettes(existing)
+  return updated
+}
+
+/**
+ * Convert a Palette to ColorMapEntry[] for transform coloring
+ */
+export function paletteToEntries(
+  palette: Palette,
+  count: number,
+): ColorMapEntry[] {
+  return paletteToColorMap(palette, count)
+}
+
 /** Helper to create a color entry */
 export function colorEntry(
   a: number,
@@ -67,6 +254,7 @@ export function applyColorMapToFlame(
   })
 }
 
+/** Default color maps for flames (using entries) */
 export const defaultColorMaps: ColorMap[] = [
   colorMap(
     'grayscale',
