@@ -1,8 +1,8 @@
 import { oklabToRgb } from '@typegpu/color'
 import { onCleanup } from 'solid-js'
 import { tgpu } from 'typegpu'
-import { arrayOf, builtin, f32, i32, struct, texture1d, vec2f, vec2i, vec3f, vec4f, } from 'typegpu/data'
-import { abs, add, clamp, div, log, max, mix, mul, pow, saturate, smoothstep, sub, textureLoad, } from 'typegpu/std'
+import { arrayOf, builtin, f32, i32, struct, vec2f, vec2i, vec3f, vec4f, } from 'typegpu/data'
+import { abs, add, clamp, div, log, max, mix, mul, pow, saturate, smoothstep, sub, } from 'typegpu/std'
 import { Bucket, BUCKET_FIXED_POINT_MULTIPLIER_INV } from './types'
 import type { LayoutEntryToInput, TgpuRoot } from 'typegpu'
 import type { Palette } from './colorMap'
@@ -18,11 +18,15 @@ export const ColorGradingUniforms = struct({
   vibrancy: f32,
   /** Number of palette entries */
   paletteEntryCount: i32,
-  /** Palette texture width (1D texture dimensions) */
-  paletteTextureWidth: i32,
 })
 
-/** Palette entry as stored in the 1D texture (RGBA32F: R=a, G=b, B=unused, A=position) */
+/** Palette entry: R=a, G=b, B=unused, A=position */
+export const PaletteEntry = struct({
+  a: f32,
+  b: f32,
+  position: f32,
+})
+
 const bindGroupLayout = tgpu.bindGroupLayout({
   uniforms: {
     uniform: ColorGradingUniforms,
@@ -34,14 +38,14 @@ const bindGroupLayout = tgpu.bindGroupLayout({
     storage: arrayOf(Bucket),
     access: 'readonly',
   },
-  paletteTexture: {
-    texture: texture1d(),
+  paletteBuffer: {
+    storage: arrayOf(PaletteEntry),
+    access: 'readonly',
   },
 })
 
 export function createColorGradingPipeline(
   root: TgpuRoot,
-  device: GPUDevice,
   uniforms: LayoutEntryToInput<(typeof bindGroupLayout)['entries']['uniforms']>,
   textureSize: readonly [number, number],
   accumulationBuffer: LayoutEntryToInput<
@@ -61,47 +65,30 @@ export function createColorGradingPipeline(
 
   const entryCount = palette ? palette.entries.length : 1
 
-  // Use rgba8unorm (filterable) instead of rgba32float (unfilterable).
-  // Palette values are normalized to [0,1] range for a/b, with 8-bit precision (~0.004).
-  const rawTexture = device.createTexture({
-    size: [entryCount, 1],
-    format: 'rgba8unorm',
-    dimension: '1d',
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-    label: 'paletteTexture',
-  })
+  // Create palette buffer using tgpu (avoids texture binding origin "handle" issues)
+  const paletteBuffer = root
+    .createBuffer(arrayOf(PaletteEntry, entryCount))
+    .$usage('storage')
 
-  // Write palette data if available
   if (palette) {
-    const data = new Uint8Array(entryCount * 4)
     const sorted = [...palette.entries].sort((a, b) => a.position - b.position)
-    for (let i = 0; i < sorted.length; i++) {
-      const entry = sorted[i]!
-      // Normalize a, b to [0, 1] range (a, b are typically in [-0.2, 0.2])
-      // offset by 0.2 and scale to fill [0, 1]
-      data[i * 4 + 0] = Math.round(((entry.a + 0.2) / 0.4) * 255)
-      data[i * 4 + 1] = Math.round(((entry.b + 0.2) / 0.4) * 255)
-      data[i * 4 + 2] = 0
-      // position is already in [0, 1]
-      data[i * 4 + 3] = Math.round(entry.position * 255)
-    }
-    device.queue.writeTexture(
-      { texture: rawTexture, mipLevel: 0 },
-      data,
-      { bytesPerRow: entryCount * 4, rowsPerImage: 1 },
-      [entryCount, 1, 1],
-    )
+    const entries = sorted.map((entry) => ({
+      a: entry.a,
+      b: entry.b,
+      position: entry.position,
+    }))
+    paletteBuffer.write(entries)
   }
 
   onCleanup(() => {
-    rawTexture.destroy()
+    paletteBuffer.destroy()
   })
 
   const bindGroup = root.createBindGroup(bindGroupLayout, {
     uniforms,
     accumulationBuffer,
     textureSize: textureSizeBuffer,
-    paletteTexture: rawTexture.createView({ label: 'paletteTextureView' }),
+    paletteBuffer,
   })
 
   const VertexOutput = {
@@ -149,8 +136,6 @@ export function createColorGradingPipeline(
     )
 
     // density: normalized count where PREFILTER_WHITE=255 marks a "full" texel.
-    // averagePointCountPerBucketInv = unitSquareArea / accumulatedPointCount.
-    // This means density=1.0 when the bucket has average hit count.
     const density = div(
       mul(count, uniforms.averagePointCountPerBucketInv),
       f32(255),
@@ -158,15 +143,10 @@ export function createColorGradingPipeline(
 
     let finalAb = vec2f(texColorAb)
     if (uniforms.paletteEntryCount > i32(0) && uniforms.vibrancy > f32(0)) {
-      // Use tgpu's standard texture binding for textureLoad (no sampler needed)
-      const paletteTexture = bindGroupLayout.$.paletteTexture
+      // Access palette via storage buffer (no texture binding = no origin "handle" issues)
+      const paletteBuffer = bindGroupLayout.$.paletteBuffer
 
-      // Log-density index for palette sampling.
-      // count is in [0, ∞). We map it to [0, 1] for palette lookup.
-      // log(count + 1) is in [0, ∞). We scale it so that the
-      // typical density range maps to interesting parts of the palette.
-      // A count equal to the average bucket count (density=1) should sample
-      // near the center of the palette (position 0.5).
+      // Log-density index for palette lookup.
       const logDensity = clamp(log(add(count, f32(1))), f32(0), f32(10))
       const paletteScale = f32(0.1)
       const logDensityNorm = clamp(
@@ -175,13 +155,11 @@ export function createColorGradingPipeline(
         f32(1),
       )
 
-      // Use textureLoad to fetch palette entry at discrete texel index.
-      // Cast the normalized coordinate to a texel index within the palette.
-      const texelIdx = i32(
-        mul(logDensityNorm, sub(f32(uniforms.paletteTextureWidth), f32(1))),
-      )
-      const paletteSample = textureLoad(paletteTexture, texelIdx, 0)
-      const paletteAb = vec2f(paletteSample.x, paletteSample.y)
+      // Nearest-neighbor lookup: map logDensityNorm to palette entry index.
+      const idx = i32(mul(f32(uniforms.paletteEntryCount), logDensityNorm))
+      const clampedIdx = clamp(idx, i32(0), sub(uniforms.paletteEntryCount, i32(1)))
+      const entry = paletteBuffer[clampedIdx]!
+      const paletteAb = vec2f(entry.a, entry.b)
 
       // Calculate alpha for vibrancy blend factor
       const gamma = f32(0.5)
@@ -194,7 +172,6 @@ export function createColorGradingPipeline(
       )
 
       // Interpolate between texel-averaged color and palette-sampled color
-      // Palette samples provide better color depth awareness
       const paletteBlend = clamp(
         mul(uniforms.vibrancy, saturate(baseAlpha)),
         f32(0),

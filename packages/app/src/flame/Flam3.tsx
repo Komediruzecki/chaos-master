@@ -124,7 +124,6 @@ export function Flam3(props: Flam3Props) {
     const { textureSize, postprocessBuffer, accumulationBuffer } = o
     return createColorGradingPipeline(
       root,
-      device,
       colorGradingUniforms,
       textureSize,
       props.adaptiveFilterEnabled ? postprocessBuffer : accumulationBuffer,
@@ -213,7 +212,6 @@ export function Flam3(props: Flam3Props) {
         backgroundColor: vec4f(backgroundColorFinal(), 1),
         vibrancy: props.flameDescriptor.renderSettings.vibrancy,
         paletteEntryCount: props.palette?.entries.length ?? 0,
-        paletteTextureWidth: props.palette?.entries.length ?? 0,
       })
       rafLoop.redraw()
       forceDrawToScreen = true
