@@ -119,10 +119,7 @@ export function createColorGradingPipeline(
     const frac = div(density, linrange)
     const funcval = pow(linrange, gamma)
     const baseAlpha = add(
-      mul(
-        mul(sub(f32(1), frac), density),
-        div(funcval, linrange),
-      ),
+      mul(mul(sub(f32(1), frac), density), div(funcval, linrange)),
       mul(frac, pow(density, gamma)),
     )
     let vibrancyMultiplier = f32(1)
