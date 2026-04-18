@@ -18,11 +18,18 @@ export function PaletteSelector(props: PaletteSelectorProps) {
   )
   const [_forceUpdate, setForceUpdate] = createSignal(0)
   const [officialPalettes, setOfficialPalettes] = createSignal<Palette[]>([])
+  const [loadedCount, setLoadedCount] = createSignal(20)
 
   onMount(async () => {
     const loaded = await loadOfficialPalettes()
     setOfficialPalettes(loaded)
   })
+
+  // Batch-loaded official palettes
+  const displayedOfficialPalettes = () => officialPalettes().slice(0, loadedCount())
+  const hasMoreOfficialPalettes = () => loadedCount() < officialPalettes().length
+
+  const loadMore = () => setLoadedCount((c) => c + 20)
 
   const customPalettes = () => {
     void _forceUpdate()
@@ -30,7 +37,7 @@ export function PaletteSelector(props: PaletteSelectorProps) {
   }
   const allPalettes = () => {
     void _forceUpdate()
-    return [...defaultPalettes, ...officialPalettes(), ...customPalettes()]
+    return [...defaultPalettes, ...displayedOfficialPalettes(), ...customPalettes()]
   }
 
   const handleDelete = (e: MouseEvent, palette: Palette) => {
@@ -99,7 +106,7 @@ export function PaletteSelector(props: PaletteSelectorProps) {
     <div class={ui.selector}>
       <div class={ui.header}>
         <span class={ui.label}>Palettes</span>
-        <span class={ui.count}>{allPalettes().length}</span>
+        <span class={ui.count}>{officialPalettes().length + defaultPalettes.length + customPalettes().length}</span>
       </div>
 
       <Show when={!showCustom()}>
@@ -174,6 +181,13 @@ export function PaletteSelector(props: PaletteSelectorProps) {
             )}
           </For>
         </div>
+
+        {/* Load More for official palettes */}
+        <Show when={hasMoreOfficialPalettes()}>
+          <button class={ui.importBtn} onClick={loadMore}>
+            Load More ({officialPalettes().length - loadedCount()} remaining)
+          </button>
+        </Show>
 
         {/* Import button */}
         <button class={ui.importBtn} onClick={handleImportPalettes}>
