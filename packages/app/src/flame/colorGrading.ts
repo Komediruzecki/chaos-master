@@ -1,8 +1,8 @@
 import { oklabToRgb } from '@typegpu/color'
 import { onCleanup } from 'solid-js'
 import { tgpu } from 'typegpu'
-import { arrayOf, builtin, f32, i32, sampler, struct, texture1d, vec2f, vec2i, vec3f, vec4f, } from 'typegpu/data'
-import { abs, add, clamp, div, log, max, mix, mul, pow, saturate, smoothstep, sub, textureSample, } from 'typegpu/std'
+import { arrayOf, builtin, f32, i32, struct, texture1d, vec2f, vec2i, vec3f, vec4f, } from 'typegpu/data'
+import { abs, add, clamp, div, log, max, mix, mul, pow, saturate, smoothstep, sub, textureLoad, } from 'typegpu/std'
 import { Bucket, BUCKET_FIXED_POINT_MULTIPLIER_INV } from './types'
 import type { LayoutEntryToInput, TgpuRoot } from 'typegpu'
 import type { Palette } from './colorMap'
@@ -37,9 +37,6 @@ const bindGroupLayout = tgpu.bindGroupLayout({
   paletteTexture: {
     texture: texture1d(),
   },
-  paletteSampler: {
-    sampler: 'non-filtering',
-  },
 })
 
 export function createColorGradingPipeline(
@@ -64,7 +61,7 @@ export function createColorGradingPipeline(
 
   const entryCount = palette ? palette.entries.length : 1
 
-  // Create raw WebGPU texture (bypasses tgpu's problematic origin "handle" for texture views)
+  // Create raw WebGPU 1D texture for palette data
   const rawTexture = device.createTexture({
     size: [entryCount, 1],
     format: 'rgba32float',
@@ -92,17 +89,8 @@ export function createColorGradingPipeline(
     )
   }
 
-  // Create raw WebGPU sampler (non-filtering for rgba32float unfilterable texture)
-  const rawSampler = device.createSampler({
-    minFilter: 'nearest',
-    magFilter: 'nearest',
-    addressModeU: 'clamp-to-edge',
-    label: 'paletteSampler',
-  })
-
   onCleanup(() => {
     rawTexture.destroy()
-    // GPUSampler is implicitly destroyed with its parent device
   })
 
   const bindGroup = root.createBindGroup(bindGroupLayout, {
@@ -110,22 +98,7 @@ export function createColorGradingPipeline(
     accumulationBuffer,
     textureSize: textureSizeBuffer,
     paletteTexture: rawTexture.createView({ label: 'paletteTextureView' }),
-    paletteSampler: rawSampler,
   })
-
-  // rawCodeSnippet declarations must be in the same scope as shader use so tgpu
-  // includes them in the resolved WGSL bundle. Origin "uniform" is valid for
-  // textureSample pointer creation (unlike "handle" which is not in originToPtrParams).
-  const paletteTexRef = tgpu['~unstable'].rawCodeSnippet(
-    'paletteTex',
-    texture1d(),
-    'uniform',
-  )
-  const paletteSamplerRef = tgpu['~unstable'].rawCodeSnippet(
-    'paletteSampler',
-    sampler(),
-    'uniform',
-  )
 
   const VertexOutput = {
     pos: builtin.position,
@@ -181,10 +154,8 @@ export function createColorGradingPipeline(
 
     let finalAb = vec2f(texColorAb)
     if (uniforms.paletteEntryCount > i32(0) && uniforms.vibrancy > f32(0)) {
-      // Use rawCodeSnippet references for texture/sampler.
-      // Origin "uniform" is valid for textureSample (unlike "handle").
-      const paletteTexture = paletteTexRef.value
-      const paletteSampler = paletteSamplerRef.value
+      // Use tgpu's standard texture binding for textureLoad (no sampler needed)
+      const paletteTexture = bindGroupLayout.$.paletteTexture
 
       // Log-density index for palette sampling.
       // count is in [0, ∞). We map it to [0, 1] for palette lookup.
@@ -200,13 +171,12 @@ export function createColorGradingPipeline(
         f32(1),
       )
 
-      // Sample palette by log-density (using nearest sampler for discrete sampling)
-      // textureSample returns vec4f which maps to (R=a, G=b, B=?, A=position)
-      const paletteSample = textureSample(
-        paletteTexture,
-        paletteSampler,
-        logDensityNorm,
+      // Use textureLoad to fetch palette entry at discrete texel index.
+      // Cast the normalized coordinate to a texel index within the palette.
+      const texelIdx = i32(
+        mul(logDensityNorm, sub(f32(uniforms.paletteTextureWidth), f32(1))),
       )
+      const paletteSample = textureLoad(paletteTexture, texelIdx, 0)
       const paletteAb = vec2f(paletteSample.x, paletteSample.y)
 
       // Calculate alpha for vibrancy blend factor
