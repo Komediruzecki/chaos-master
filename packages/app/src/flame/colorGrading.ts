@@ -130,8 +130,6 @@ export function createColorGradingPipeline(
     const uniforms = bindGroupLayout.$.uniforms
     const textureSize = bindGroupLayout.$.textureSize
     const accumulationBuffer = bindGroupLayout.$.accumulationBuffer
-    const paletteTexture = bindGroupLayout.$.paletteTexture
-    const paletteSampler = bindGroupLayout.$.paletteSampler
 
     const edgeFade =
       uniforms.edgeFadeColor.a * smoothstep(0.98, 1, max(abs(uv.x), abs(uv.y)))
@@ -162,6 +160,11 @@ export function createColorGradingPipeline(
 
     let finalAb = texColorAb
     if (uniforms.paletteEntryCount > i32(0) && uniforms.vibrancy > f32(0)) {
+      // These must be referenced inside the if-block so tgpu only resolves
+      // them when the palette texture is actually bound.
+      const paletteTexture = bindGroupLayout.$.paletteTexture
+      const paletteSampler = bindGroupLayout.$.paletteSampler
+
       // Log-density index for palette sampling.
       // count is in [0, ∞). We map it to [0, 1] for palette lookup.
       // log(count + 1) is in [0, ∞). We scale by a factor so that the
