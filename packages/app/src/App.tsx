@@ -601,6 +601,19 @@ function App(props: AppProps) {
                 </select>
                 <span></span>
               </label>
+              <Slider
+                label="Vibrancy"
+                value={flameDescriptor.renderSettings.vibrancy}
+                min={0}
+                max={1}
+                step={0.05}
+                onInput={(newVibrancy) => {
+                  setFlameDescriptor((draft) => {
+                    draft.renderSettings.vibrancy = newVibrancy
+                  })
+                }}
+                formatValue={(value) => value.toFixed(2)}
+              />
               <label class={ui.labeledInput}>
                 <span>Background Color</span>
                 <ColorPicker

@@ -209,6 +209,7 @@ export function Flam3(props: Flam3Props) {
         exposure: 2 * Math.exp(props.flameDescriptor.renderSettings.exposure),
         edgeFadeColor: props.onExportImage ? vec4f(0) : props.edgeFadeColor,
         backgroundColor: vec4f(backgroundColorFinal(), 1),
+        vibrancy: props.flameDescriptor.renderSettings.vibrancy,
       })
       rafLoop.redraw()
       forceDrawToScreen = true

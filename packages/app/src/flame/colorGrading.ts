@@ -2,7 +2,7 @@ import { oklabToRgb } from '@typegpu/color'
 import { onCleanup } from 'solid-js'
 import { tgpu } from 'typegpu'
 import { arrayOf, builtin, f32, struct, vec2f, vec2i, vec3f, vec4f, } from 'typegpu/data'
-import { abs, div, log, max, mix, mul, pow, saturate, smoothstep, } from 'typegpu/std'
+import { abs, add, div, log, max, mix, mul, pow, saturate, smoothstep, } from 'typegpu/std'
 import { Bucket, BUCKET_FIXED_POINT_MULTIPLIER_INV } from './types'
 import type { LayoutEntryToInput, TgpuRoot } from 'typegpu'
 import type { DrawModeFn } from './drawMode'
@@ -13,6 +13,8 @@ export const ColorGradingUniforms = struct({
   backgroundColor: vec4f,
   /** Adds a slight fade towards the edge of the viewport */
   edgeFadeColor: vec4f,
+  /** Vibrancy: 0 = none, 1 = full saturation boost in dense regions */
+  vibrancy: f32,
 })
 
 const bindGroupLayout = tgpu.bindGroupLayout({
@@ -94,8 +96,27 @@ export function createColorGradingPipeline(
       count,
     )
     const adjustedCount = 0.1 * count * uniforms.averagePointCountPerBucketInv
+
+    // Apply vibrancy: boost saturation in denser regions
+    // Based on flam3_calc_alpha from flam3/palettes.c
+    // Density normalized to 0-1 range where 1 is very dense
+    const density = clamp(adjustedCount * 10, 0, 1)
+    const gamma = 0.5  // gamma=0.5 makes dense areas more vibrant
+    const linrange = 1.0
+    const funcval = pow(linrange, gamma)
+    let vibrancyMultiplier = f32(1)
+    if (density > 0 && uniforms.vibrancy > 0) {
+      // interpolation formula matches C flam3_calc_alpha
+      const frac = density / linrange
+      const baseAlpha = (1 - frac) * density * (funcval / linrange) + frac * pow(density, gamma)
+      // Scale ab by baseAlpha, boosted by vibrancy uniform (0-1)
+      vibrancyMultiplier = add(f32(1), mul(uniforms.vibrancy, saturate(baseAlpha)))
+    }
+
     const value = uniforms.exposure * pow(log(adjustedCount + 1), 0.4545)
-    const rgb = saturate(oklabToRgb(vec3f(drawMode(value), ab)))
+    // Apply vibrancy multiplier to the color's saturation (ab channel)
+    const vibrantAb = mul(ab, vibrancyMultiplier)
+    const rgb = saturate(oklabToRgb(vec3f(drawMode(value), vibrantAb)))
     const alpha = saturate(value) * (1 - edgeFade)
     const rgba = vec4f(rgb, alpha)
     return mix(backgroundColor, rgba, alpha)
