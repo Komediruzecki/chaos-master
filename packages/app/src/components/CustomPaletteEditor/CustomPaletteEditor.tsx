@@ -380,7 +380,9 @@ export function CustomPaletteEditor(props: CustomPaletteEditorProps) {
                 {(preset) => (
                   <button
                     class={ui.presetBtn}
-                    style={{ background: oklabToRgbForCss(preset.a, preset.b, 0.7) }}
+                    style={{
+                      background: oklabToRgbForCss(preset.a, preset.b, 0.7),
+                    }}
                     title={preset.name}
                     onClick={() => {
                       setEditA(preset.a)

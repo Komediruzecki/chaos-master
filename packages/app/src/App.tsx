@@ -100,6 +100,9 @@ function App(props: AppProps) {
   const [showSidebar, setShowSidebar] = createSignal(true)
   const [selectedPaletteId, setSelectedPaletteId] =
     createSignal<string>('default')
+  const [selectedPalette, setSelectedPalette] = createSignal<
+    Palette | undefined
+  >(undefined)
   const [flameDescriptor, setFlameDescriptor, history] = createStoreHistory(
     createStore(
       structuredClone(
@@ -133,6 +136,7 @@ function App(props: AppProps) {
 
   const handlePaletteSelect = (palette: Palette) => {
     setSelectedPaletteId(palette.id)
+    setSelectedPalette(palette)
     // Convert palette entries to color map entries and apply
     const entries = palette.entries.map((entry) => ({ a: entry.a, b: entry.b }))
     const colorMap: ColorMap = {
@@ -283,6 +287,7 @@ function App(props: AppProps) {
                   setQualityPointCountLimit={(fn) =>
                     setQualityPointCountLimit(() => fn)
                   }
+                  palette={selectedPalette()}
                 />
               </WheelZoomCamera2D>
             </AutoCanvas>

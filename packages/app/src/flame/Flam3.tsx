@@ -14,6 +14,7 @@ import { createIFSPipeline } from './ifsPipeline'
 import { backgroundColorDefault, backgroundColorDefaultWhite, } from './schema/flameSchema'
 import { Bucket } from './types'
 import type { v4f } from 'typegpu/data'
+import type { Palette } from './colorMap'
 import type { FlameDescriptor } from './schema/flameSchema'
 import type { ExportImageType } from '@/App'
 
@@ -32,6 +33,7 @@ type Flam3Props = {
   onExportImage?: ExportImageType
   setCurrentQuality?: (fn: () => number) => void
   setQualityPointCountLimit?: (fn: () => number) => void
+  palette?: Palette
 }
 
 export function Flam3(props: Flam3Props) {
@@ -79,6 +81,8 @@ export function Flam3(props: Flam3Props) {
       backgroundColor: vec4f(0, 0, 0, 0),
       edgeFadeColor: vec4f(0, 0, 0, 0.8),
       vibrancy: 0.5,
+      paletteEntryCount: 0,
+      paletteTextureWidth: 0,
     })
     .$usage('uniform')
 
@@ -125,6 +129,7 @@ export function Flam3(props: Flam3Props) {
       props.adaptiveFilterEnabled ? postprocessBuffer : accumulationBuffer,
       canvasFormat,
       drawModeToImplFn[props.flameDescriptor.renderSettings.drawMode],
+      props.palette,
     )
   })
 
@@ -206,6 +211,7 @@ export function Flam3(props: Flam3Props) {
         edgeFadeColor: props.onExportImage ? vec4f(0) : props.edgeFadeColor,
         backgroundColor: vec4f(backgroundColorFinal(), 1),
         vibrancy: props.flameDescriptor.renderSettings.vibrancy,
+        paletteEntryCount: props.palette?.entries.length ?? 0,
       })
       rafLoop.redraw()
       forceDrawToScreen = true
@@ -214,6 +220,7 @@ export function Flam3(props: Flam3Props) {
     createEffect(() => {
       // redraw when these change
       const _ = colorGradingPipeline()
+      void props.palette // track palette changes
       rafLoop.redraw()
       forceDrawToScreen = true
     })

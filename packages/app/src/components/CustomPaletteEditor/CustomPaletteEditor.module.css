@@ -142,7 +142,8 @@
   cursor: crosshair;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: linear-gradient(
+  background:
+    linear-gradient(
       to bottom,
       rgb(255, 255, 150) 0%,
       rgb(200, 220, 255) 30%,

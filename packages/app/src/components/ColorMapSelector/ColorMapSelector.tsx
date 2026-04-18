@@ -32,7 +32,11 @@ export function ColorMapSelector(props: ColorMapSelectorProps) {
                     <div
                       class={ui.swatch}
                       style={{
-                        'background-color': oklabToRgbForCss(entry.a, entry.b, 0.7),
+                        'background-color': oklabToRgbForCss(
+                          entry.a,
+                          entry.b,
+                          0.7,
+                        ),
                       }}
                     />
                   )}

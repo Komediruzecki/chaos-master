@@ -1,10 +1,11 @@
 import { oklabToRgb } from '@typegpu/color'
 import { onCleanup } from 'solid-js'
 import { tgpu } from 'typegpu'
-import { arrayOf, builtin, f32, struct, vec2f, vec2i, vec3f, vec4f, } from 'typegpu/data'
-import { abs, add, div, log, max, mix, mul, pow, saturate, smoothstep, sub, } from 'typegpu/std'
+import { arrayOf, builtin, f32, i32, struct, texture1d, vec2f, vec2i, vec3f, vec4f, } from 'typegpu/data'
+import { abs, add, clamp, div, log, max, mix, mul, pow, saturate, smoothstep, sub, textureSample, } from 'typegpu/std'
 import { Bucket, BUCKET_FIXED_POINT_MULTIPLIER_INV } from './types'
 import type { LayoutEntryToInput, TgpuRoot } from 'typegpu'
+import type { Palette } from './colorMap'
 import type { DrawModeFn } from './drawMode'
 
 export const ColorGradingUniforms = struct({
@@ -15,8 +16,13 @@ export const ColorGradingUniforms = struct({
   edgeFadeColor: vec4f,
   /** Vibrancy: 0 = none, 1 = full saturation boost in dense regions */
   vibrancy: f32,
+  /** Number of palette entries */
+  paletteEntryCount: i32,
+  /** Palette texture width (1D texture dimensions) */
+  paletteTextureWidth: i32,
 })
 
+/** Palette entry as stored in the 1D texture (RGBA32F: R=a, G=b, B=unused, A=position) */
 const bindGroupLayout = tgpu.bindGroupLayout({
   uniforms: {
     uniform: ColorGradingUniforms,
@@ -27,6 +33,12 @@ const bindGroupLayout = tgpu.bindGroupLayout({
   accumulationBuffer: {
     storage: arrayOf(Bucket),
     access: 'readonly',
+  },
+  paletteTexture: {
+    texture: texture1d(),
+  },
+  paletteSampler: {
+    sampler: 'filtering',
   },
 })
 
@@ -39,6 +51,7 @@ export function createColorGradingPipeline(
   >,
   canvasFormat: GPUTextureFormat,
   drawMode: DrawModeFn,
+  palette: Palette | undefined,
 ) {
   const textureSizeBuffer = root
     .createBuffer(vec2i, vec2i(...textureSize))
@@ -48,10 +61,53 @@ export function createColorGradingPipeline(
     textureSizeBuffer.destroy()
   })
 
+  // Create palette texture if palette is provided
+  let paletteSampler:
+    | ReturnType<(typeof root)['~unstable']['createSampler']>
+    | undefined
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let paletteTextureView: any = undefined
+
+  if (palette) {
+    const tex = root['~unstable']
+      .createTexture({
+        size: [palette.entries.length, 1],
+        format: 'rgba32float',
+        dimension: '1d',
+      })
+      .$usage('sampled')
+
+    paletteSampler = root['~unstable'].createSampler({
+      magFilter: 'linear',
+      minFilter: 'linear',
+      addressModeU: 'clamp-to-edge',
+    })
+
+    // Write palette data to texture
+    const data = new Float32Array(palette.entries.length * 4)
+    const sorted = [...palette.entries].sort((a, b) => a.position - b.position)
+    for (let i = 0; i < sorted.length; i++) {
+      const entry = sorted[i]!
+      data[i * 4 + 0] = entry.a
+      data[i * 4 + 1] = entry.b
+      data[i * 4 + 2] = 0
+      data[i * 4 + 3] = entry.position
+    }
+    tex.write(data)
+    paletteTextureView = tex.createView()
+
+    onCleanup(() => {
+      tex.destroy()
+    })
+  }
+
+  // @ts-expect-error - palette texture/sampler are optional, tgpu's LayoutEntryToInput doesn't model optionality
   const bindGroup = root.createBindGroup(bindGroupLayout, {
     uniforms,
     accumulationBuffer,
     textureSize: textureSizeBuffer,
+    paletteTexture: paletteTextureView,
+    ...(paletteSampler ? { paletteSampler } : {}),
   })
 
   const VertexOutput = {
@@ -74,9 +130,13 @@ export function createColorGradingPipeline(
     in: VertexOutput,
     out: vec4f,
   })(({ pos, uv }) => {
+    'use gpu'
     const uniforms = bindGroupLayout.$.uniforms
     const textureSize = bindGroupLayout.$.textureSize
     const accumulationBuffer = bindGroupLayout.$.accumulationBuffer
+    const paletteTexture = bindGroupLayout.$.paletteTexture
+    const paletteSampler = bindGroupLayout.$.paletteSampler
+
     const edgeFade =
       uniforms.edgeFadeColor.a * smoothstep(0.98, 1, max(abs(uv.x), abs(uv.y)))
     const backgroundColor = mix(
@@ -88,14 +148,15 @@ export function createColorGradingPipeline(
     const texelIndex = pos2i.y * textureSize.x + pos2i.x
     const tex = accumulationBuffer[texelIndex]!
     const count = f32(tex.count) * BUCKET_FIXED_POINT_MULTIPLIER_INV
-    const ab = div(
+    const texColorAb = div(
       mul(
         vec2f(f32(tex.color.a), f32(tex.color.b)),
         BUCKET_FIXED_POINT_MULTIPLIER_INV,
       ),
-      count,
+      max(count, f32(1)),
     )
-    // Density: normalized count where PREFILTER_WHITE=255 marks a "full" texel.
+
+    // density: normalized count where PREFILTER_WHITE=255 marks a "full" texel.
     // averagePointCountPerBucketInv = unitSquareArea / accumulatedPointCount.
     // This means density=1.0 when the bucket has average hit count.
     const density = div(
@@ -103,17 +164,29 @@ export function createColorGradingPipeline(
       f32(255),
     )
 
-    // adjustedCount is still used for the brightness/value calculation below
-    const adjustedCount = mul(
-      mul(count, uniforms.averagePointCountPerBucketInv),
-      f32(0.1),
-    )
+    // Log-density index for palette sampling.
+    // count is in [0, ∞). We map it to [0, 1] for palette lookup.
+    // log(count + 1) is in [0, ∞). We scale by a factor so that the
+    // typical density range maps to interesting parts of the palette.
+    // A count equal to the average bucket count (density=1) should sample
+    // near the center of the palette (position 0.5).
+    const logDensity = clamp(log(add(count, f32(1))), f32(0), f32(10))
+    // Scale so that log(avg_count + 1) ≈ 0.5 in palette space.
+    // avg_count = 1 / averagePointCountPerBucketInv = accumulatedPointCount / unitSquareArea
+    // For typical values, this is in the range 5-50.
+    const paletteScale = f32(0.1)
+    const logDensityNorm = clamp(mul(logDensity, paletteScale), f32(0), f32(1))
 
-    // Apply vibrancy: boost saturation in denser regions.
-    // Port of flam3_calc_alpha from flam3/palettes.c.
-    // alpha = (1-frac)*density*(funcval/linrange) + frac*density^gamma  (for density < linrange)
-    // alpha = density^gamma  (for density >= linrange)
-    // vibrancy multiplies the chroma by (1 + vibrancy * alpha) — at vibrancy=1, alpha=1, chroma doubles.
+    // Sample palette by log-density (using linear sampler for smooth gradients)
+    // textureSample returns vec4f which maps to (R=a, G=b, B=?, A=position)
+    const paletteSample = textureSample(
+      paletteTexture,
+      paletteSampler,
+      logDensityNorm,
+    )
+    const paletteAb = vec2f(paletteSample.x, paletteSample.y)
+
+    // Calculate alpha for vibrancy (same as before)
     const gamma = f32(0.5)
     const linrange = f32(1.0)
     const frac = div(density, linrange)
@@ -122,18 +195,31 @@ export function createColorGradingPipeline(
       mul(mul(sub(f32(1), frac), density), div(funcval, linrange)),
       mul(frac, pow(density, gamma)),
     )
-    let vibrancyMultiplier = f32(1)
-    if (density > f32(0) && uniforms.vibrancy > f32(0)) {
-      vibrancyMultiplier = add(
-        f32(1),
+
+    // Blend between averaged texel color and palette-sampled color based on vibrancy.
+    // At vibrancy=0: use averaged texel color (original behavior)
+    // At vibrancy=1: use palette color for saturation, but blend the two
+    // vibrancy controls how much of the palette's chroma we apply
+    let finalAb = texColorAb
+    if (uniforms.paletteEntryCount > i32(0) && uniforms.vibrancy > f32(0)) {
+      // Interpolate between texel-averaged color and palette-sampled color
+      // Palette samples provide better color depth awareness
+      const paletteBlend = clamp(
         mul(uniforms.vibrancy, saturate(baseAlpha)),
+        f32(0),
+        f32(1),
       )
+      finalAb = mix(texColorAb, paletteAb, paletteBlend)
     }
 
+    // Brightness from log-count
+    const adjustedCount = mul(
+      mul(count, uniforms.averagePointCountPerBucketInv),
+      f32(0.1),
+    )
     const value = uniforms.exposure * pow(log(adjustedCount + 1), 0.4545)
-    // Apply vibrancy multiplier to the color's saturation (ab channel)
-    const vibrantAb = mul(ab, vibrancyMultiplier)
-    const rgb = saturate(oklabToRgb(vec3f(drawMode(value), vibrantAb)))
+
+    const rgb = saturate(oklabToRgb(vec3f(drawMode(value), finalAb)))
     const alpha = saturate(value) * (1 - edgeFade)
     const rgba = vec4f(rgb, alpha)
     return mix(backgroundColor, rgba, alpha)

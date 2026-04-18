@@ -29,8 +29,8 @@ export function PaletteSelector(props: PaletteSelectorProps) {
   const displayedOfficialPalettes = createMemo(() =>
     officialPalettes().slice(0, loadedCount()),
   )
-  const hasMoreOfficialPalettes = createMemo(() =>
-    loadedCount() < officialPalettes().length,
+  const hasMoreOfficialPalettes = createMemo(
+    () => loadedCount() < officialPalettes().length,
   )
 
   const loadMore = () => setLoadedCount((c) => c + 20)
