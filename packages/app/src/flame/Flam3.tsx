@@ -193,16 +193,11 @@ export function Flam3(props: Flam3Props) {
     let clearRequested = true
     createEffect(() => {
       ifsPipeline.update(props.flameDescriptor)
-
-      // this is in a separate effect because we don't
-      // want to run ifs.update if not necessary
-      createEffect(() => {
-        camera.update()
-        batchIndex = 0
-        accumulatedPointCount = 0
-        clearRequested = true
-        rafLoop.redraw()
-      })
+      camera.update()
+      batchIndex = 0
+      accumulatedPointCount = 0
+      clearRequested = true
+      rafLoop.redraw()
     })
 
     createEffect(() => {
