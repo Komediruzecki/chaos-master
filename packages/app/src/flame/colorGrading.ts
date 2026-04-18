@@ -208,7 +208,7 @@ export function createColorGradingPipeline(
       f32(255),
     )
 
-    let finalAb = texColorAb
+    let finalAb = vec2f(texColorAb)
     if (uniforms.paletteEntryCount > i32(0) && uniforms.vibrancy > f32(0)) {
       // Use rawCodeSnippet references for texture/sampler.
       // These have origin "uniform" which is valid for textureSample.
