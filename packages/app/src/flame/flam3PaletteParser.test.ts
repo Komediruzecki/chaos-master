@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  flam3CalcAlpha,
-  flam3PaletteToPalette,
-  parseFlam3Palettes,
-} from './flam3PaletteParser'
+import { flam3CalcAlpha, flam3PaletteToPalette, parseFlam3Palettes, } from './flam3PaletteParser'
 
 describe('parseFlam3Palettes', () => {
   it('parses official format with hex data', () => {

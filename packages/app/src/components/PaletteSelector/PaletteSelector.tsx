@@ -26,8 +26,10 @@ export function PaletteSelector(props: PaletteSelectorProps) {
   })
 
   // Batch-loaded official palettes
-  const displayedOfficialPalettes = () => officialPalettes().slice(0, loadedCount())
-  const hasMoreOfficialPalettes = () => loadedCount() < officialPalettes().length
+  const displayedOfficialPalettes = () =>
+    officialPalettes().slice(0, loadedCount())
+  const hasMoreOfficialPalettes = () =>
+    loadedCount() < officialPalettes().length
 
   const loadMore = () => setLoadedCount((c) => c + 20)
 
@@ -37,7 +39,11 @@ export function PaletteSelector(props: PaletteSelectorProps) {
   }
   const allPalettes = () => {
     void _forceUpdate()
-    return [...defaultPalettes, ...displayedOfficialPalettes(), ...customPalettes()]
+    return [
+      ...defaultPalettes,
+      ...displayedOfficialPalettes(),
+      ...customPalettes(),
+    ]
   }
 
   const handleDelete = (e: MouseEvent, palette: Palette) => {
@@ -106,7 +112,11 @@ export function PaletteSelector(props: PaletteSelectorProps) {
     <div class={ui.selector}>
       <div class={ui.header}>
         <span class={ui.label}>Palettes</span>
-        <span class={ui.count}>{officialPalettes().length + defaultPalettes.length + customPalettes().length}</span>
+        <span class={ui.count}>
+          {officialPalettes().length +
+            defaultPalettes.length +
+            customPalettes().length}
+        </span>
       </div>
 
       <Show when={!showCustom()}>

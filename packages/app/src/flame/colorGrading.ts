@@ -101,16 +101,20 @@ export function createColorGradingPipeline(
     // Based on flam3_calc_alpha from flam3/palettes.c
     // Density normalized to 0-1 range where 1 is very dense
     const density = clamp(adjustedCount * 10, 0, 1)
-    const gamma = 0.5  // gamma=0.5 makes dense areas more vibrant
+    const gamma = 0.5 // gamma=0.5 makes dense areas more vibrant
     const linrange = 1.0
     const funcval = pow(linrange, gamma)
     let vibrancyMultiplier = f32(1)
     if (density > 0 && uniforms.vibrancy > 0) {
       // interpolation formula matches C flam3_calc_alpha
       const frac = density / linrange
-      const baseAlpha = (1 - frac) * density * (funcval / linrange) + frac * pow(density, gamma)
+      const baseAlpha =
+        (1 - frac) * density * (funcval / linrange) + frac * pow(density, gamma)
       // Scale ab by baseAlpha, boosted by vibrancy uniform (0-1)
-      vibrancyMultiplier = add(f32(1), mul(uniforms.vibrancy, saturate(baseAlpha)))
+      vibrancyMultiplier = add(
+        f32(1),
+        mul(uniforms.vibrancy, saturate(baseAlpha)),
+      )
     }
 
     const value = uniforms.exposure * pow(log(adjustedCount + 1), 0.4545)

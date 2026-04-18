@@ -270,7 +270,7 @@ export async function loadOfficialPalettes(): Promise<Palette[]> {
     if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`)
     const text = await res.text()
     const palettes = parseFlam3Palettes(text)
-    return batchProcess(palettes, flam3PaletteToPalette, 10)
+    return await batchProcess(palettes, flam3PaletteToPalette, 10)
   } catch (err) {
     console.error('Failed to load official Flam3 palettes:', err)
     return []
