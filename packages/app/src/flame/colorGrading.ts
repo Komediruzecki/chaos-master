@@ -68,18 +68,18 @@ export function createColorGradingPipeline(
     addressModeU: 'clamp-to-edge',
   })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let paletteTextureView: any = undefined
+  // Always create at least a 1x1 placeholder texture so the binding is never
+  // undefined (which would fail tgpu + WebGPU validation). The shader guards
+  // actual palette sampling with if (paletteEntryCount > 0).
+  const paletteTex = root['~unstable']
+    .createTexture({
+      size: [palette ? palette.entries.length : 1, 1],
+      format: 'rgba32float',
+      dimension: '1d',
+    })
+    .$usage('sampled')
 
   if (palette) {
-    const tex = root['~unstable']
-      .createTexture({
-        size: [palette.entries.length, 1],
-        format: 'rgba32float',
-        dimension: '1d',
-      })
-      .$usage('sampled')
-
     // Write palette data to texture
     const data = new Float32Array(palette.entries.length * 4)
     const sorted = [...palette.entries].sort((a, b) => a.position - b.position)
@@ -90,13 +90,14 @@ export function createColorGradingPipeline(
       data[i * 4 + 2] = 0
       data[i * 4 + 3] = entry.position
     }
-    tex.write(data)
-    paletteTextureView = tex.createView()
-
-    onCleanup(() => {
-      tex.destroy()
-    })
+    paletteTex.write(data)
   }
+
+  const paletteTextureView = paletteTex.createView()
+
+  onCleanup(() => {
+    paletteTex.destroy()
+  })
 
   const bindGroup = root.createBindGroup(bindGroupLayout, {
     uniforms,
