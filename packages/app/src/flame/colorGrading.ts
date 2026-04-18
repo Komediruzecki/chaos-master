@@ -42,25 +42,29 @@ const bindGroupLayout = tgpu.bindGroupLayout({
   },
 })
 
-/**
- * Creates a palette texture 1D and sampler using raw WebGPU APIs.
- * Returns the raw GPU objects and tgpu rawCodeSnippet references for shader use.
- *
- * The key issue this solves: tgpu's bindGroupLayout.$textureName returns a snippet
- * with origin "handle", which is not in originToPtrParams. When textureSample tries
- * to create a pointer from that origin, it fails with "Creating pointer type from origin handle".
- *
- * The fix: Use rawCodeSnippet with origin "uniform" (which IS in originToPtrParams)
- * for the texture/sampler variable references. The GPU binding still uses the raw
- * WebGPU texture/sampler objects directly.
- */
-function createPaletteTextureResources(
+export function createColorGradingPipeline(
+  root: TgpuRoot,
   device: GPUDevice,
+  uniforms: LayoutEntryToInput<(typeof bindGroupLayout)['entries']['uniforms']>,
+  textureSize: readonly [number, number],
+  accumulationBuffer: LayoutEntryToInput<
+    (typeof bindGroupLayout)['entries']['accumulationBuffer']
+  >,
+  canvasFormat: GPUTextureFormat,
+  drawMode: DrawModeFn,
   palette: Palette | undefined,
 ) {
+  const textureSizeBuffer = root
+    .createBuffer(vec2i, vec2i(...textureSize))
+    .$usage('uniform')
+
+  onCleanup(() => {
+    textureSizeBuffer.destroy()
+  })
+
   const entryCount = palette ? palette.entries.length : 1
 
-  // Create raw WebGPU texture (not through tgpu's root)
+  // Create raw WebGPU texture (bypasses tgpu's problematic origin "handle" for texture views)
   const rawTexture = device.createTexture({
     size: [entryCount, 1],
     format: 'rgba32float',
@@ -88,7 +92,7 @@ function createPaletteTextureResources(
     )
   }
 
-  // Create raw WebGPU sampler (not through tgpu's root)
+  // Create raw WebGPU sampler (non-filtering for rgba32float unfilterable texture)
   const rawSampler = device.createSampler({
     minFilter: 'nearest',
     magFilter: 'nearest',
@@ -96,10 +100,22 @@ function createPaletteTextureResources(
     label: 'paletteSampler',
   })
 
-  // Create tgpu rawCodeSnippet references for shader use.
-  // Using origin "uniform" because these textures are bound as sampled textures,
-  // which use the uniform address space. Origin "handle" would cause the
-  // "Creating pointer type from origin handle" error.
+  onCleanup(() => {
+    rawTexture.destroy()
+    // GPUSampler is implicitly destroyed with its parent device
+  })
+
+  const bindGroup = root.createBindGroup(bindGroupLayout, {
+    uniforms,
+    accumulationBuffer,
+    textureSize: textureSizeBuffer,
+    paletteTexture: rawTexture.createView({ label: 'paletteTextureView' }),
+    paletteSampler: rawSampler,
+  })
+
+  // rawCodeSnippet declarations must be in the same scope as shader use so tgpu
+  // includes them in the resolved WGSL bundle. Origin "uniform" is valid for
+  // textureSample pointer creation (unlike "handle" which is not in originToPtrParams).
   const paletteTexRef = tgpu['~unstable'].rawCodeSnippet(
     'paletteTex',
     texture1d(),
@@ -110,51 +126,6 @@ function createPaletteTextureResources(
     sampler(),
     'uniform',
   )
-
-  return {
-    rawTexture,
-    rawSampler,
-    rawTextureView: rawTexture.createView({ label: 'paletteTextureView' }),
-    paletteTexRef,
-    paletteSamplerRef,
-  }
-}
-
-export function createColorGradingPipeline(
-  root: TgpuRoot,
-  device: GPUDevice,
-  uniforms: LayoutEntryToInput<(typeof bindGroupLayout)['entries']['uniforms']>,
-  textureSize: readonly [number, number],
-  accumulationBuffer: LayoutEntryToInput<
-    (typeof bindGroupLayout)['entries']['accumulationBuffer']
-  >,
-  canvasFormat: GPUTextureFormat,
-  drawMode: DrawModeFn,
-  palette: Palette | undefined,
-) {
-  const textureSizeBuffer = root
-    .createBuffer(vec2i, vec2i(...textureSize))
-    .$usage('uniform')
-
-  onCleanup(() => {
-    textureSizeBuffer.destroy()
-  })
-
-  // Create palette texture resources using raw WebGPU APIs
-  const paletteResources = createPaletteTextureResources(device, palette)
-
-  onCleanup(() => {
-    paletteResources.rawTexture.destroy()
-    // GPUSampler doesn't have a destroy method - it's implicitly destroyed with its parent device
-  })
-
-  const bindGroup = root.createBindGroup(bindGroupLayout, {
-    uniforms,
-    accumulationBuffer,
-    textureSize: textureSizeBuffer,
-    paletteTexture: paletteResources.rawTextureView,
-    paletteSampler: paletteResources.rawSampler,
-  })
 
   const VertexOutput = {
     pos: builtin.position,
@@ -211,9 +182,9 @@ export function createColorGradingPipeline(
     let finalAb = vec2f(texColorAb)
     if (uniforms.paletteEntryCount > i32(0) && uniforms.vibrancy > f32(0)) {
       // Use rawCodeSnippet references for texture/sampler.
-      // These have origin "uniform" which is valid for textureSample.
-      const paletteTexture = paletteResources.paletteTexRef.value
-      const paletteSampler = paletteResources.paletteSamplerRef.value
+      // Origin "uniform" is valid for textureSample (unlike "handle").
+      const paletteTexture = paletteTexRef.value
+      const paletteSampler = paletteSamplerRef.value
 
       // Log-density index for palette sampling.
       // count is in [0, ∞). We map it to [0, 1] for palette lookup.
