@@ -38,7 +38,7 @@ const bindGroupLayout = tgpu.bindGroupLayout({
     texture: texture1d(),
   },
   paletteSampler: {
-    sampler: 'filtering',
+    sampler: 'non-filtering',
   },
 })
 
@@ -63,8 +63,8 @@ export function createColorGradingPipeline(
 
   // Palette sampler is always needed — texture/sampler are only sampled when paletteEntryCount > 0
   const paletteSampler = root['~unstable'].createSampler({
-    magFilter: 'linear',
-    minFilter: 'linear',
+    magFilter: 'nearest',
+    minFilter: 'nearest',
     addressModeU: 'clamp-to-edge',
   })
 
