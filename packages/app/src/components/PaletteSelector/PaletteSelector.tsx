@@ -37,14 +37,16 @@ export function PaletteSelector(props: PaletteSelectorProps) {
     void _forceUpdate()
     return loadCustomPalettes()
   }
-  const allPalettes = () => {
+
+  // All palettes excluding custom (custom is rendered separately)
+  const allNonCustomPalettes = () => {
     void _forceUpdate()
-    return [
-      ...defaultPalettes,
-      ...displayedOfficialPalettes(),
-      ...customPalettes(),
-    ]
+    return [...defaultPalettes, ...displayedOfficialPalettes()]
   }
+
+  // Full count including custom
+  const totalCount = () =>
+    officialPalettes().length + defaultPalettes.length + customPalettes().length
 
   const handleDelete = (e: MouseEvent, palette: Palette) => {
     e.stopPropagation()
@@ -54,7 +56,12 @@ export function PaletteSelector(props: PaletteSelectorProps) {
     setForceUpdate((n) => n + 1)
     // Deselect if the deleted palette was selected
     if (props.selectedPaletteId === palette.id) {
-      props.onSelect(allPalettes()[0]!)
+      const all = [
+        ...defaultPalettes,
+        ...displayedOfficialPalettes(),
+        ...customPalettes(),
+      ]
+      props.onSelect(all[0]!)
     }
   }
 
@@ -112,11 +119,7 @@ export function PaletteSelector(props: PaletteSelectorProps) {
     <div class={ui.selector}>
       <div class={ui.header}>
         <span class={ui.label}>Palettes</span>
-        <span class={ui.count}>
-          {officialPalettes().length +
-            defaultPalettes.length +
-            customPalettes().length}
-        </span>
+        <span class={ui.count}>{totalCount()}</span>
       </div>
 
       <Show when={!showCustom()}>
@@ -133,10 +136,10 @@ export function PaletteSelector(props: PaletteSelectorProps) {
             <span class={ui.name}>New</span>
           </button>
 
-          {/* Edit existing custom palette */}
+          {/* Custom palettes — rendered as divs with inner buttons to avoid invalid nested button HTML */}
           <For each={customPalettes()}>
             {(palette) => (
-              <button
+              <div
                 class={ui.paletteButton}
                 classList={{
                   [ui.selected as string]:
@@ -155,23 +158,24 @@ export function PaletteSelector(props: PaletteSelectorProps) {
                   style={{ background: paletteToGradientCSS(palette) }}
                 />
                 <span class={ui.name}>{palette.name}</span>
-
-                <button
+                <span
                   class={ui.deleteBtn}
                   onClick={(e) => {
                     handleDelete(e, palette)
                   }}
                   title="Delete palette"
+                  role="button"
                 >
                   ×
-                </button>
-              </button>
+                </span>
+              </div>
             )}
           </For>
 
-          <For each={allPalettes()}>
+          {/* Default + official palettes */}
+          <For each={allNonCustomPalettes()}>
             {(palette) => (
-              <button
+              <div
                 class={ui.paletteButton}
                 classList={{
                   [ui.selected as string]:
@@ -187,7 +191,7 @@ export function PaletteSelector(props: PaletteSelectorProps) {
                   style={{ background: paletteToGradientCSS(palette) }}
                 />
                 <span class={ui.name}>{palette.name}</span>
-              </button>
+              </div>
             )}
           </For>
         </div>
