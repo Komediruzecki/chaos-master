@@ -160,44 +160,41 @@ export function createColorGradingPipeline(
       f32(255),
     )
 
-    // Log-density index for palette sampling.
-    // count is in [0, ∞). We map it to [0, 1] for palette lookup.
-    // log(count + 1) is in [0, ∞). We scale by a factor so that the
-    // typical density range maps to interesting parts of the palette.
-    // A count equal to the average bucket count (density=1) should sample
-    // near the center of the palette (position 0.5).
-    const logDensity = clamp(log(add(count, f32(1))), f32(0), f32(10))
-    // Scale so that log(avg_count + 1) ≈ 0.5 in palette space.
-    // avg_count = 1 / averagePointCountPerBucketInv = accumulatedPointCount / unitSquareArea
-    // For typical values, this is in the range 5-50.
-    const paletteScale = f32(0.1)
-    const logDensityNorm = clamp(mul(logDensity, paletteScale), f32(0), f32(1))
-
-    // Sample palette by log-density (using linear sampler for smooth gradients)
-    // textureSample returns vec4f which maps to (R=a, G=b, B=?, A=position)
-    const paletteSample = textureSample(
-      paletteTexture,
-      paletteSampler,
-      logDensityNorm,
-    )
-    const paletteAb = vec2f(paletteSample.x, paletteSample.y)
-
-    // Calculate alpha for vibrancy (same as before)
-    const gamma = f32(0.5)
-    const linrange = f32(1.0)
-    const frac = div(density, linrange)
-    const funcval = pow(linrange, gamma)
-    const baseAlpha = add(
-      mul(mul(sub(f32(1), frac), density), div(funcval, linrange)),
-      mul(frac, pow(density, gamma)),
-    )
-
-    // Blend between averaged texel color and palette-sampled color based on vibrancy.
-    // At vibrancy=0: use averaged texel color (original behavior)
-    // At vibrancy=1: use palette color for saturation, but blend the two
-    // vibrancy controls how much of the palette's chroma we apply
     let finalAb = texColorAb
     if (uniforms.paletteEntryCount > i32(0) && uniforms.vibrancy > f32(0)) {
+      // Log-density index for palette sampling.
+      // count is in [0, ∞). We map it to [0, 1] for palette lookup.
+      // log(count + 1) is in [0, ∞). We scale by a factor so that the
+      // typical density range maps to interesting parts of the palette.
+      // A count equal to the average bucket count (density=1) should sample
+      // near the center of the palette (position 0.5).
+      const logDensity = clamp(log(add(count, f32(1))), f32(0), f32(10))
+      const paletteScale = f32(0.1)
+      const logDensityNorm = clamp(
+        mul(logDensity, paletteScale),
+        f32(0),
+        f32(1),
+      )
+
+      // Sample palette by log-density (using linear sampler for smooth gradients)
+      // textureSample returns vec4f which maps to (R=a, G=b, B=?, A=position)
+      const paletteSample = textureSample(
+        paletteTexture,
+        paletteSampler,
+        logDensityNorm,
+      )
+      const paletteAb = vec2f(paletteSample.x, paletteSample.y)
+
+      // Calculate alpha for vibrancy blend factor
+      const gamma = f32(0.5)
+      const linrange = f32(1.0)
+      const frac = div(density, linrange)
+      const funcval = pow(linrange, gamma)
+      const baseAlpha = add(
+        mul(mul(sub(f32(1), frac), density), div(funcval, linrange)),
+        mul(frac, pow(density, gamma)),
+      )
+
       // Interpolate between texel-averaged color and palette-sampled color
       // Palette samples provide better color depth awareness
       const paletteBlend = clamp(
