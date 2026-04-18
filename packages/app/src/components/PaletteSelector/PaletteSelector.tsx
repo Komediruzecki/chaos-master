@@ -1,7 +1,8 @@
-import { createSignal, For, Show } from 'solid-js'
+import { createSignal, For, onMount, Show } from 'solid-js'
 import { CustomPaletteEditor } from '@/components/CustomPaletteEditor/CustomPaletteEditor'
 import { deleteCustomPalette, loadCustomPalettes, saveCustomPalettes, } from '@/flame/colorMap'
-import { getAllPalettes, paletteToGradientCSS } from '@/flame/palettes'
+import { flam3PaletteToPalette, loadOfficialPalettes, parseFlam3Palettes, } from '@/flame/flam3PaletteParser'
+import { defaultPalettes, paletteToGradientCSS } from '@/flame/palettes'
 import ui from './PaletteSelector.module.css'
 import type { Palette } from '@/flame/colorMap'
 
@@ -16,6 +17,12 @@ export function PaletteSelector(props: PaletteSelectorProps) {
     undefined,
   )
   const [_forceUpdate, setForceUpdate] = createSignal(0)
+  const [officialPalettes, setOfficialPalettes] = createSignal<Palette[]>([])
+
+  onMount(async () => {
+    const loaded = await loadOfficialPalettes()
+    setOfficialPalettes(loaded)
+  })
 
   const customPalettes = () => {
     void _forceUpdate()
@@ -23,7 +30,7 @@ export function PaletteSelector(props: PaletteSelectorProps) {
   }
   const allPalettes = () => {
     void _forceUpdate()
-    return getAllPalettes(customPalettes())
+    return [...defaultPalettes, ...officialPalettes(), ...customPalettes()]
   }
 
   const handleDelete = (e: MouseEvent, palette: Palette) => {
@@ -48,8 +55,6 @@ export function PaletteSelector(props: PaletteSelectorProps) {
       if (files.length === 0) return
 
       try {
-        const { parseFlam3Palettes, flam3PaletteToPalette } =
-          await import('@/flame/flam3PaletteParser')
         let importedCount = 0
         for (const file of files) {
           const text = await file.text()

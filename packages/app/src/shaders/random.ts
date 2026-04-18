@@ -73,7 +73,10 @@ export const randomUnitSquare = tgpu.fn(
   return vec2f(random(), random()).sub(vec2f(0.5, 0.5)).mul(2)
 })
 
-export const randomGaussianDisk = tgpu.fn([], vec2f)(() => {
+export const randomGaussianDisk = tgpu.fn(
+  [],
+  vec2f,
+)(() => {
   const r =
     gaussianRandom() +
     gaussianRandom() +
@@ -84,17 +87,26 @@ export const randomGaussianDisk = tgpu.fn([], vec2f)(() => {
   return vec2f(cos(theta), sin(theta)).mul(r)
 })
 
-export const randomGaussianSquare = tgpu.fn([], vec2f)(() => {
+export const randomGaussianSquare = tgpu.fn(
+  [],
+  vec2f,
+)(() => {
   return vec2f(gaussianRandom(), gaussianRandom())
 })
 
-export const randomUniformCircle = tgpu.fn([], vec2f)(() => {
+export const randomUniformCircle = tgpu.fn(
+  [],
+  vec2f,
+)(() => {
   const r = sqrt(random())
   const theta = random() * 2 * PI.$
   return mul(r, vec2f(cos(theta), sin(theta)))
 })
 
-export const randomGaussianCircle = tgpu.fn([], vec2f)(() => {
+export const randomGaussianCircle = tgpu.fn(
+  [],
+  vec2f,
+)(() => {
   const r =
     gaussianRandom() +
     gaussianRandom() +
