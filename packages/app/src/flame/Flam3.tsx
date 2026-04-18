@@ -78,6 +78,7 @@ export function Flam3(props: Flam3Props) {
       exposure: 1,
       backgroundColor: vec4f(0, 0, 0, 0),
       edgeFadeColor: vec4f(0, 0, 0, 0.8),
+      vibrancy: 0.5,
     })
     .$usage('uniform')
 

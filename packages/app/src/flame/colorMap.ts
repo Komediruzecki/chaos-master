@@ -47,7 +47,7 @@ export type Palette = {
   name: string
   entries: PaletteEntry[]
   /** Source of the palette */
-  source: 'builtin' | 'custom' | 'imported'
+  source: 'builtin' | 'custom' | 'imported' | 'official'
   createdAt?: number
 }
 

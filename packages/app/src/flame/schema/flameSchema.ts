@@ -89,10 +89,13 @@ const RenderSettings = v.object({
   drawMode: v.optional(DrawMode, 'light'),
   colorInitMode: v.optional(ColorInitMode, 'colorInitZero'),
   pointInitMode: v.optional(PointInitMode, 'pointInitUnitDisk'),
-  vibrancy: v.pipe(
-    v.number(),
-    v.minValue(MIN_VIBRANCY_VALUE),
-    v.maxValue(MAX_VIBRANCY_VALUE),
+  vibrancy: v.optional(
+    v.pipe(
+      v.number(),
+      v.minValue(MIN_VIBRANCY_VALUE),
+      v.maxValue(MAX_VIBRANCY_VALUE),
+    ),
+    0.5,
   ),
   backgroundColor: v.optional(
     v.tuple([ColorValueSchema, ColorValueSchema, ColorValueSchema]),
