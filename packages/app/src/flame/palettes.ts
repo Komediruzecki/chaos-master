@@ -6,6 +6,7 @@
  */
 
 import { palette, paletteEntry } from './colorMap'
+import { oklabToRgbForCss } from './colors'
 import type { Palette } from './colorMap'
 
 /** Create a gradient palette from RGB stops */
@@ -492,11 +493,11 @@ export function getAllPalettes(customPalettes: Palette[] = []): Palette[] {
 /** Convert a Palette to a gradient CSS string for preview */
 export function paletteToGradientCSS(palette: Palette): string {
   const sorted = [...palette.entries].sort((a, b) => a.position - b.position)
-  if (sorted.length === 0) return 'oklab(0.6, 0, 0)'
+  if (sorted.length === 0) return oklabToRgbForCss(0, 0, 0.6)
 
   const stops = sorted.map(
     (entry) =>
-      `oklab(0.7, ${entry.a}, ${entry.b}) ${Math.round(entry.position * 100)}%`,
+      `${oklabToRgbForCss(entry.a, entry.b, 0.7)} ${Math.round(entry.position * 100)}%`,
   )
   return `linear-gradient(to right, ${stops.join(', ')})`
 }

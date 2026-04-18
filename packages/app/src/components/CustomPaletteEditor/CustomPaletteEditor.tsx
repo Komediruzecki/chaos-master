@@ -34,9 +34,7 @@ function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v))
 }
 
-function oklabToCss(a: number, b: number): string {
-  return `oklab(0.7, ${a}, ${b})`
-}
+import { oklabToRgbForCss } from '@/flame/colors'
 
 export function CustomPaletteEditor(props: CustomPaletteEditorProps) {
   const isEditing = () => props.initialPalette !== undefined
@@ -73,7 +71,7 @@ export function CustomPaletteEditor(props: CustomPaletteEditorProps) {
   const gradientCSS = createMemo(() => {
     const stops = sortedEntries().map(
       (entry) =>
-        `${oklabToCss(entry.a, entry.b)} ${Math.round(entry.position * 100)}%`,
+        `${oklabToRgbForCss(entry.a, entry.b, 0.7)} ${Math.round(entry.position * 100)}%`,
     )
     return `linear-gradient(to right, ${stops.join(', ')})`
   })
@@ -272,7 +270,7 @@ export function CustomPaletteEditor(props: CustomPaletteEditorProps) {
               }}
               style={{
                 left: `${Math.round(entry.position * 100)}%`,
-                background: oklabToCss(entry.a, entry.b),
+                background: oklabToRgbForCss(entry.a, entry.b, 0.7),
               }}
               onMouseDown={(e) => {
                 handleStopMouseDown(e, i())
@@ -325,7 +323,7 @@ export function CustomPaletteEditor(props: CustomPaletteEditorProps) {
             {/* Color preview */}
             <div
               class={ui.colorPreview}
-              style={{ background: oklabToCss(editA(), editB()) }}
+              style={{ background: oklabToRgbForCss(editA(), editB(), 0.7) }}
             />
 
             {/* a/b plane picker */}
@@ -382,7 +380,7 @@ export function CustomPaletteEditor(props: CustomPaletteEditorProps) {
                 {(preset) => (
                   <button
                     class={ui.presetBtn}
-                    style={{ background: oklabToCss(preset.a, preset.b) }}
+                    style={{ background: oklabToRgbForCss(preset.a, preset.b, 0.7) }}
                     title={preset.name}
                     onClick={() => {
                       setEditA(preset.a)

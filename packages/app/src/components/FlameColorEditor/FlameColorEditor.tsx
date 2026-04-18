@@ -29,7 +29,10 @@ const HANDLE_LIGHTNESS = {
 }
 
 export function handleColor(theme: Theme, color: v2f) {
-  return `oklab(${HANDLE_LIGHTNESS[theme]} ${color.x} ${color.y})`
+  const lightness = HANDLE_LIGHTNESS[theme]
+  // Use oklab() for the CSS --color variable so that relative color syntax
+  // (oklab(from var(--color) ...)) works in Slider/Checkbox CSS gradients
+  return `oklab(${lightness} ${color.x} ${color.y})`
 }
 
 function Gradient() {

@@ -131,7 +131,9 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-/* a/b plane picker */
+/* a/b plane picker — uses a perceptual color plane visualization
+   Top-to-bottom: b channel (yellow at top, blue at bottom)
+   Left-to-right: a channel (green on left, red on right) */
 .oklabPicker {
   position: relative;
   width: 100%;
@@ -140,9 +142,19 @@
   cursor: crosshair;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background:
-    linear-gradient(to bottom, oklab(0.7, 0, 1) 0%, oklab(0.7, 0, -1) 100%),
-    linear-gradient(to right, oklab(0.7, -1, 0) 0%, oklab(0.7, 1, 0) 100%);
+  background: linear-gradient(
+      to bottom,
+      rgb(255, 255, 150) 0%,
+      rgb(200, 220, 255) 30%,
+      rgb(100, 150, 255) 60%,
+      rgb(80, 100, 200) 100%
+    ),
+    linear-gradient(
+      to right,
+      rgb(100, 220, 100) 0%,
+      rgb(255, 255, 255) 50%,
+      rgb(255, 100, 100) 100%
+    );
   background-blend-mode: multiply;
 }
 
