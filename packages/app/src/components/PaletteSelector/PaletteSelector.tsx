@@ -1,4 +1,4 @@
-import { createSignal, For, onMount, Show } from 'solid-js'
+import { createMemo, createSignal, For, onMount, Show } from 'solid-js'
 import { CustomPaletteEditor } from '@/components/CustomPaletteEditor/CustomPaletteEditor'
 import { deleteCustomPalette, loadCustomPalettes, saveCustomPalettes, } from '@/flame/colorMap'
 import { flam3PaletteToPalette, loadOfficialPalettes, parseFlam3Palettes, } from '@/flame/flam3PaletteParser'
@@ -25,11 +25,13 @@ export function PaletteSelector(props: PaletteSelectorProps) {
     setOfficialPalettes(loaded)
   })
 
-  // Batch-loaded official palettes
-  const displayedOfficialPalettes = () =>
-    officialPalettes().slice(0, loadedCount())
-  const hasMoreOfficialPalettes = () =>
-    loadedCount() < officialPalettes().length
+  // Batch-loaded official palettes — createMemo so the component re-renders when officialPalettes loads
+  const displayedOfficialPalettes = createMemo(() =>
+    officialPalettes().slice(0, loadedCount()),
+  )
+  const hasMoreOfficialPalettes = createMemo(() =>
+    loadedCount() < officialPalettes().length,
+  )
 
   const loadMore = () => setLoadedCount((c) => c + 20)
 
