@@ -1,4 +1,5 @@
 import { createSignal, For, Show } from 'solid-js'
+import { CustomPaletteEditor } from '@/components/CustomPaletteEditor/CustomPaletteEditor'
 import { deleteCustomPalette, loadCustomPalettes, saveCustomPalettes, } from '@/flame/colorMap'
 import { getAllPalettes, paletteToGradientCSS } from '@/flame/palettes'
 import ui from './PaletteSelector.module.css'
@@ -7,11 +8,13 @@ import type { Palette } from '@/flame/colorMap'
 type PaletteSelectorProps = {
   selectedPaletteId: string
   onSelect: (palette: Palette) => void
-  onEditCustom?: (palette: Palette) => void
 }
 
 export function PaletteSelector(props: PaletteSelectorProps) {
   const [showCustom, setShowCustom] = createSignal(false)
+  const [customPalette, setCustomPalette] = createSignal<Palette | undefined>(
+    undefined,
+  )
   const [_forceUpdate, setForceUpdate] = createSignal(0)
 
   const customPalettes = () => {
@@ -29,32 +32,62 @@ export function PaletteSelector(props: PaletteSelectorProps) {
     if (!confirm(`Delete palette "${palette.name}"?`)) return
     deleteCustomPalette(palette.id)
     setForceUpdate((n) => n + 1)
+    // Deselect if the deleted palette was selected
+    if (props.selectedPaletteId === palette.id) {
+      props.onSelect(allPalettes()[0]!)
+    }
   }
 
   const handleImportPalettes = () => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = '.xml,application/xml,text/xml'
+    input.multiple = true
     input.onchange = async () => {
-      const file = input.files?.[0]
-      if (!file) return
+      const files = Array.from(input.files ?? [])
+      if (files.length === 0) return
 
       try {
-        const text = await file.text()
         const { parseFlam3Palettes, flam3PaletteToPalette } =
           await import('@/flame/flam3PaletteParser')
-        const flam3Palettes = parseFlam3Palettes(text)
-        const palettes = flam3Palettes.map(flam3PaletteToPalette)
-
-        const existing = loadCustomPalettes()
-        saveCustomPalettes([...existing, ...palettes])
+        let importedCount = 0
+        for (const file of files) {
+          const text = await file.text()
+          const flam3Palettes = parseFlam3Palettes(text)
+          const palettes = flam3Palettes.map(flam3PaletteToPalette)
+          const existing = loadCustomPalettes()
+          saveCustomPalettes([...existing, ...palettes])
+          importedCount += palettes.length
+        }
         setForceUpdate((n) => n + 1)
-        console.info(`Imported ${palettes.length} palettes from ${file.name}`)
+        console.info(`Imported ${importedCount} palettes`)
       } catch (err) {
         console.error('Failed to import palettes:', err)
       }
     }
     input.click()
+  }
+
+  const handleNewCustom = () => {
+    setCustomPalette(undefined)
+    setShowCustom(true)
+  }
+
+  const handleEditCustom = (palette: Palette) => {
+    setCustomPalette(palette)
+    setShowCustom(true)
+  }
+
+  const handleSaveCustom = (palette: Palette) => {
+    setShowCustom(false)
+    setCustomPalette(undefined)
+    setForceUpdate((n) => n + 1)
+    props.onSelect(palette)
+  }
+
+  const handleCancelCustom = () => {
+    setShowCustom(false)
+    setCustomPalette(undefined)
   }
 
   return (
@@ -64,48 +97,43 @@ export function PaletteSelector(props: PaletteSelectorProps) {
         <span class={ui.count}>{allPalettes().length}</span>
       </div>
 
-      <div class={ui.gallery}>
-        {/* Custom palette option */}
-        <button
-          class={ui.paletteButton}
-          classList={{
-            [ui.selected as string]: props.selectedPaletteId === 'custom',
-          }}
-          onClick={() => {
-            setShowCustom(!showCustom())
-          }}
-          title="Create or edit custom palette"
-        >
-          <div class={ui.previewCustom}>
-            <span class={ui.customIcon}>+</span>
-          </div>
-          <span class={ui.name}>Custom</span>
-        </button>
+      <Show when={!showCustom()}>
+        <div class={ui.gallery}>
+          {/* New custom palette */}
+          <button
+            class={ui.paletteButton}
+            onClick={handleNewCustom}
+            title="Create a new custom palette"
+          >
+            <div class={ui.previewCustom}>
+              <span class={ui.customIcon}>+</span>
+            </div>
+            <span class={ui.name}>New</span>
+          </button>
 
-        <For each={allPalettes()}>
-          {(palette) => (
-            <button
-              class={ui.paletteButton}
-              classList={{
-                [ui.selected as string]: props.selectedPaletteId === palette.id,
-              }}
-              onClick={() => {
-                props.onSelect(palette)
-              }}
-              title={palette.name}
-            >
-              <div
-                class={ui.preview}
-                style={{ background: paletteToGradientCSS(palette) }}
-              />
-              <span class={ui.name}>{palette.name}</span>
-
-              {/* Delete button for custom/imported palettes */}
-              <Show
-                when={
-                  palette.source === 'custom' || palette.source === 'imported'
-                }
+          {/* Edit existing custom palette */}
+          <For each={customPalettes()}>
+            {(palette) => (
+              <button
+                class={ui.paletteButton}
+                classList={{
+                  [ui.selected as string]:
+                    props.selectedPaletteId === palette.id,
+                }}
+                onClick={() => {
+                  props.onSelect(palette)
+                }}
+                onDblClick={() => {
+                  handleEditCustom(palette)
+                }}
+                title={`${palette.name} (double-click to edit)`}
               >
+                <div
+                  class={ui.preview}
+                  style={{ background: paletteToGradientCSS(palette) }}
+                />
+                <span class={ui.name}>{palette.name}</span>
+
                 <button
                   class={ui.deleteBtn}
                   onClick={(e) => {
@@ -115,29 +143,46 @@ export function PaletteSelector(props: PaletteSelectorProps) {
                 >
                   ×
                 </button>
-              </Show>
-            </button>
-          )}
-        </For>
-      </div>
+              </button>
+            )}
+          </For>
 
-      {/* Import button */}
-      <button class={ui.importBtn} onClick={handleImportPalettes}>
-        Import flam3 Palettes
-      </button>
+          <For each={allPalettes()}>
+            {(palette) => (
+              <button
+                class={ui.paletteButton}
+                classList={{
+                  [ui.selected as string]:
+                    props.selectedPaletteId === palette.id,
+                }}
+                onClick={() => {
+                  props.onSelect(palette)
+                }}
+                title={palette.name}
+              >
+                <div
+                  class={ui.preview}
+                  style={{ background: paletteToGradientCSS(palette) }}
+                />
+                <span class={ui.name}>{palette.name}</span>
+              </button>
+            )}
+          </For>
+        </div>
+
+        {/* Import button */}
+        <button class={ui.importBtn} onClick={handleImportPalettes}>
+          Import flam3 Palettes
+        </button>
+      </Show>
 
       <Show when={showCustom()}>
-        <div class={ui.customSection}>
-          <div class={ui.customHeader}>Custom Palette Editor</div>
-          <p class={ui.customHint}>
-            Click on the gradient below to add color stops. Drag stops to
-            reposition, click to edit.
-          </p>
-          {/* Placeholder for future custom palette editor */}
-          <div class={ui.customPlaceholder}>
-            Custom palette editor coming soon
-          </div>
-        </div>
+        <CustomPaletteEditor
+          initialPalette={customPalette()}
+          onSave={handleSaveCustom}
+          onCancel={handleCancelCustom}
+          onDelete={handleCancelCustom}
+        />
       </Show>
     </div>
   )
