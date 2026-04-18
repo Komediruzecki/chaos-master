@@ -86,6 +86,7 @@ export type ExportImageType = (canvas: HTMLCanvasElement) => void
 type AppProps = {
   flameFromQuery?: FlameDescriptor
   flameFromWelcome?: () => FlameDescriptor | undefined
+  resetFlameFromWelcome?: () => void
 }
 
 function App(props: AppProps) {
@@ -110,6 +111,7 @@ function App(props: AppProps) {
     const newFlame = props.flameFromWelcome?.()
     if (newFlame !== undefined) {
       history.replace(structuredClone(newFlame))
+      props.resetFlameFromWelcome?.()
     }
   })
 
@@ -747,6 +749,9 @@ export function Wrappers() {
               <App
                 flameFromQuery={flameFromQuery()}
                 flameFromWelcome={selectedFlame}
+                resetFlameFromWelcome={() => {
+                  setSelectedFlame(undefined)
+                }}
               />
               {/* WelcomeScreen overlay on top */}
               <Show when={showWelcome()}>
