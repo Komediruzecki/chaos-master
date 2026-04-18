@@ -61,10 +61,11 @@ export function createColorGradingPipeline(
 
   const entryCount = palette ? palette.entries.length : 1
 
-  // Create raw WebGPU 1D texture for palette data
+  // Use rgba8unorm (filterable) instead of rgba32float (unfilterable).
+  // Palette values are normalized to [0,1] range for a/b, with 8-bit precision (~0.004).
   const rawTexture = device.createTexture({
     size: [entryCount, 1],
-    format: 'rgba32float',
+    format: 'rgba8unorm',
     dimension: '1d',
     usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
     label: 'paletteTexture',
@@ -72,19 +73,22 @@ export function createColorGradingPipeline(
 
   // Write palette data if available
   if (palette) {
-    const data = new Float32Array(entryCount * 4)
+    const data = new Uint8Array(entryCount * 4)
     const sorted = [...palette.entries].sort((a, b) => a.position - b.position)
     for (let i = 0; i < sorted.length; i++) {
       const entry = sorted[i]!
-      data[i * 4 + 0] = entry.a
-      data[i * 4 + 1] = entry.b
+      // Normalize a, b to [0, 1] range (a, b are typically in [-0.2, 0.2])
+      // offset by 0.2 and scale to fill [0, 1]
+      data[i * 4 + 0] = Math.round(((entry.a + 0.2) / 0.4) * 255)
+      data[i * 4 + 1] = Math.round(((entry.b + 0.2) / 0.4) * 255)
       data[i * 4 + 2] = 0
-      data[i * 4 + 3] = entry.position
+      // position is already in [0, 1]
+      data[i * 4 + 3] = Math.round(entry.position * 255)
     }
     device.queue.writeTexture(
       { texture: rawTexture, mipLevel: 0 },
       data,
-      { bytesPerRow: entryCount * 16, rowsPerImage: 1 },
+      { bytesPerRow: entryCount * 4, rowsPerImage: 1 },
       [entryCount, 1, 1],
     )
   }

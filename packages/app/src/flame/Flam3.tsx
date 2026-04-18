@@ -213,6 +213,7 @@ export function Flam3(props: Flam3Props) {
         backgroundColor: vec4f(backgroundColorFinal(), 1),
         vibrancy: props.flameDescriptor.renderSettings.vibrancy,
         paletteEntryCount: props.palette?.entries.length ?? 0,
+        paletteTextureWidth: props.palette?.entries.length ?? 0,
       })
       rafLoop.redraw()
       forceDrawToScreen = true
