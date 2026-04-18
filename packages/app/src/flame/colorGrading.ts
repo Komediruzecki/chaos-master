@@ -61,10 +61,13 @@ export function createColorGradingPipeline(
     textureSizeBuffer.destroy()
   })
 
-  // Create palette texture if palette is provided
-  let paletteSampler:
-    | ReturnType<(typeof root)['~unstable']['createSampler']>
-    | undefined
+  // Palette sampler is always needed — texture/sampler are only sampled when paletteEntryCount > 0
+  const paletteSampler = root['~unstable'].createSampler({
+    magFilter: 'linear',
+    minFilter: 'linear',
+    addressModeU: 'clamp-to-edge',
+  })
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let paletteTextureView: any = undefined
 
@@ -76,12 +79,6 @@ export function createColorGradingPipeline(
         dimension: '1d',
       })
       .$usage('sampled')
-
-    paletteSampler = root['~unstable'].createSampler({
-      magFilter: 'linear',
-      minFilter: 'linear',
-      addressModeU: 'clamp-to-edge',
-    })
 
     // Write palette data to texture
     const data = new Float32Array(palette.entries.length * 4)
@@ -101,13 +98,12 @@ export function createColorGradingPipeline(
     })
   }
 
-  // @ts-expect-error - palette texture/sampler are optional, tgpu's LayoutEntryToInput doesn't model optionality
   const bindGroup = root.createBindGroup(bindGroupLayout, {
     uniforms,
     accumulationBuffer,
     textureSize: textureSizeBuffer,
     paletteTexture: paletteTextureView,
-    ...(paletteSampler ? { paletteSampler } : {}),
+    paletteSampler,
   })
 
   const VertexOutput = {
