@@ -124,6 +124,7 @@ export function Flam3(props: Flam3Props) {
     const { textureSize, postprocessBuffer, accumulationBuffer } = o
     return createColorGradingPipeline(
       root,
+      device,
       colorGradingUniforms,
       textureSize,
       props.adaptiveFilterEnabled ? postprocessBuffer : accumulationBuffer,

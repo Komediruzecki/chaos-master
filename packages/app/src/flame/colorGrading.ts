@@ -1,7 +1,7 @@
 import { oklabToRgb } from '@typegpu/color'
 import { onCleanup } from 'solid-js'
 import { tgpu } from 'typegpu'
-import { arrayOf, builtin, f32, i32, struct, texture1d, vec2f, vec2i, vec3f, vec4f, } from 'typegpu/data'
+import { arrayOf, builtin, f32, i32, sampler, struct, texture1d, vec2f, vec2i, vec3f, vec4f, } from 'typegpu/data'
 import { abs, add, clamp, div, log, max, mix, mul, pow, saturate, smoothstep, sub, textureSample, } from 'typegpu/std'
 import { Bucket, BUCKET_FIXED_POINT_MULTIPLIER_INV } from './types'
 import type { LayoutEntryToInput, TgpuRoot } from 'typegpu'
@@ -42,8 +42,87 @@ const bindGroupLayout = tgpu.bindGroupLayout({
   },
 })
 
+/**
+ * Creates a palette texture 1D and sampler using raw WebGPU APIs.
+ * Returns the raw GPU objects and tgpu rawCodeSnippet references for shader use.
+ *
+ * The key issue this solves: tgpu's bindGroupLayout.$textureName returns a snippet
+ * with origin "handle", which is not in originToPtrParams. When textureSample tries
+ * to create a pointer from that origin, it fails with "Creating pointer type from origin handle".
+ *
+ * The fix: Use rawCodeSnippet with origin "uniform" (which IS in originToPtrParams)
+ * for the texture/sampler variable references. The GPU binding still uses the raw
+ * WebGPU texture/sampler objects directly.
+ */
+function createPaletteTextureResources(
+  device: GPUDevice,
+  palette: Palette | undefined,
+) {
+  const entryCount = palette ? palette.entries.length : 1
+
+  // Create raw WebGPU texture (not through tgpu's root)
+  const rawTexture = device.createTexture({
+    size: [entryCount, 1],
+    format: 'rgba32float',
+    dimension: '1d',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    label: 'paletteTexture',
+  })
+
+  // Write palette data if available
+  if (palette) {
+    const data = new Float32Array(entryCount * 4)
+    const sorted = [...palette.entries].sort((a, b) => a.position - b.position)
+    for (let i = 0; i < sorted.length; i++) {
+      const entry = sorted[i]!
+      data[i * 4 + 0] = entry.a
+      data[i * 4 + 1] = entry.b
+      data[i * 4 + 2] = 0
+      data[i * 4 + 3] = entry.position
+    }
+    device.queue.writeTexture(
+      { texture: rawTexture, mipLevel: 0 },
+      data,
+      { bytesPerRow: entryCount * 16, rowsPerImage: 1 },
+      [entryCount, 1, 1],
+    )
+  }
+
+  // Create raw WebGPU sampler (not through tgpu's root)
+  const rawSampler = device.createSampler({
+    minFilter: 'nearest',
+    magFilter: 'nearest',
+    addressModeU: 'clamp-to-edge',
+    label: 'paletteSampler',
+  })
+
+  // Create tgpu rawCodeSnippet references for shader use.
+  // Using origin "uniform" because these textures are bound as sampled textures,
+  // which use the uniform address space. Origin "handle" would cause the
+  // "Creating pointer type from origin handle" error.
+  const paletteTexRef = tgpu['~unstable'].rawCodeSnippet(
+    'paletteTex',
+    texture1d(),
+    'uniform',
+  )
+  const paletteSamplerRef = tgpu['~unstable'].rawCodeSnippet(
+    'paletteSampler',
+    sampler(),
+    'uniform',
+  )
+
+  return {
+    rawTexture,
+    rawSampler,
+    rawTextureView: rawTexture.createView({ label: 'paletteTextureView' }),
+    paletteTexRef,
+    paletteSamplerRef,
+  }
+}
+
 export function createColorGradingPipeline(
   root: TgpuRoot,
+  device: GPUDevice,
   uniforms: LayoutEntryToInput<(typeof bindGroupLayout)['entries']['uniforms']>,
   textureSize: readonly [number, number],
   accumulationBuffer: LayoutEntryToInput<
@@ -61,50 +140,20 @@ export function createColorGradingPipeline(
     textureSizeBuffer.destroy()
   })
 
-  // Palette sampler is always needed — texture/sampler are only sampled when paletteEntryCount > 0
-  const paletteSampler = root['~unstable'].createSampler({
-    magFilter: 'nearest',
-    minFilter: 'nearest',
-    addressModeU: 'clamp-to-edge',
-  })
-
-  // Always create at least a 1x1 placeholder texture so the binding is never
-  // undefined (which would fail tgpu + WebGPU validation). The shader guards
-  // actual palette sampling with if (paletteEntryCount > 0).
-  const paletteTex = root['~unstable']
-    .createTexture({
-      size: [palette ? palette.entries.length : 1, 1],
-      format: 'rgba32float',
-      dimension: '1d',
-    })
-    .$usage('sampled')
-
-  if (palette) {
-    // Write palette data to texture
-    const data = new Float32Array(palette.entries.length * 4)
-    const sorted = [...palette.entries].sort((a, b) => a.position - b.position)
-    for (let i = 0; i < sorted.length; i++) {
-      const entry = sorted[i]!
-      data[i * 4 + 0] = entry.a
-      data[i * 4 + 1] = entry.b
-      data[i * 4 + 2] = 0
-      data[i * 4 + 3] = entry.position
-    }
-    paletteTex.write(data)
-  }
-
-  const paletteTextureView = paletteTex.createView()
+  // Create palette texture resources using raw WebGPU APIs
+  const paletteResources = createPaletteTextureResources(device, palette)
 
   onCleanup(() => {
-    paletteTex.destroy()
+    paletteResources.rawTexture.destroy()
+    // GPUSampler doesn't have a destroy method - it's implicitly destroyed with its parent device
   })
 
   const bindGroup = root.createBindGroup(bindGroupLayout, {
     uniforms,
     accumulationBuffer,
     textureSize: textureSizeBuffer,
-    paletteTexture: paletteTextureView,
-    paletteSampler,
+    paletteTexture: paletteResources.rawTextureView,
+    paletteSampler: paletteResources.rawSampler,
   })
 
   const VertexOutput = {
@@ -161,14 +210,14 @@ export function createColorGradingPipeline(
 
     let finalAb = texColorAb
     if (uniforms.paletteEntryCount > i32(0) && uniforms.vibrancy > f32(0)) {
-      // These must be referenced inside the if-block so tgpu only resolves
-      // them when the palette texture is actually bound.
-      const paletteTexture = bindGroupLayout.$.paletteTexture
-      const paletteSampler = bindGroupLayout.$.paletteSampler
+      // Use rawCodeSnippet references for texture/sampler.
+      // These have origin "uniform" which is valid for textureSample.
+      const paletteTexture = paletteResources.paletteTexRef.value
+      const paletteSampler = paletteResources.paletteSamplerRef.value
 
       // Log-density index for palette sampling.
       // count is in [0, ∞). We map it to [0, 1] for palette lookup.
-      // log(count + 1) is in [0, ∞). We scale by a factor so that the
+      // log(count + 1) is in [0, ∞). We scale it so that the
       // typical density range maps to interesting parts of the palette.
       // A count equal to the average bucket count (density=1) should sample
       // near the center of the palette (position 0.5).
@@ -180,7 +229,7 @@ export function createColorGradingPipeline(
         f32(1),
       )
 
-      // Sample palette by log-density (using linear sampler for smooth gradients)
+      // Sample palette by log-density (using nearest sampler for discrete sampling)
       // textureSample returns vec4f which maps to (R=a, G=b, B=?, A=position)
       const paletteSample = textureSample(
         paletteTexture,
