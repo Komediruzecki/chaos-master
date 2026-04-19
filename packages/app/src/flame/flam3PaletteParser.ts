@@ -262,7 +262,6 @@ export async function importFlam3Palettes(file: File): Promise<Palette[]> {
 
 /**
  * Load and parse the official Flam3 palettes from /data/flam3-palettes.xml.
- * Converts palettes in small batches using setTimeout to avoid call stack overflow.
  */
 export async function loadOfficialPalettes(): Promise<Palette[]> {
   try {
@@ -270,32 +269,9 @@ export async function loadOfficialPalettes(): Promise<Palette[]> {
     if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`)
     const text = await res.text()
     const palettes = parseFlam3Palettes(text)
-    return await batchProcess(palettes, flam3PaletteToPalette, 10)
+    return palettes.map(flam3PaletteToPalette)
   } catch (err) {
     console.error('Failed to load official Flam3 palettes:', err)
     return []
   }
-}
-
-/**
- * Process items in batches using setTimeout to yield to the event loop
- * and prevent call stack overflow for large arrays.
- */
-async function batchProcess<T, R>(
-  items: T[],
-  fn: (item: T) => R,
-  batchSize: number,
-): Promise<R[]> {
-  const results: R[] = new Array(items.length)
-
-  for (let i = 0; i < items.length; i += batchSize) {
-    const batch = items.slice(i, i + batchSize)
-    for (let j = 0; j < batch.length; j++) {
-      results[i + j] = fn(batch[j]!)
-    }
-    // Yield to event loop between batches
-    await new Promise((resolve) => setTimeout(resolve, 0))
-  }
-
-  return results
 }

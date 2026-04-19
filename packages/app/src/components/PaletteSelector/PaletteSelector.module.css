@@ -55,6 +55,30 @@
   background: rgba(255, 255, 255, 0.25);
 }
 
+.importBtn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: #4a9eff;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(74, 158, 255, 0.3);
+}
+
+.importBtn:hover {
+  background: #3b8ae0;
+  box-shadow: 0 2px 12px rgba(74, 158, 255, 0.4);
+}
+
+.importBtn:active {
+  background: #2d7ac7;
+}
+
 .paletteButton {
   display: flex;
   flex-direction: column;
@@ -230,4 +254,18 @@
 
 [data-theme='light'] .gallery::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.25);
+}
+
+[data-theme='light'] .importBtn {
+  background: #2d7ac7;
+  box-shadow: 0 2px 8px rgba(45, 122, 199, 0.25);
+}
+
+[data-theme='light'] .importBtn:hover {
+  background: #4a9eff;
+  box-shadow: 0 2px 12px rgba(74, 158, 255, 0.35);
+}
+
+[data-theme='light'] .importBtn:active {
+  background: #1e5a8f;
 }
