@@ -92,16 +92,12 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
           <div class={ui.gallerySection}>
             <div class={ui.galleryHeader}>
               <span class={ui.galleryTitle}>Recent</span>
-              <span class={ui.galleryHint}>Click to open</span>
             </div>
             <Show
               when={recentItems.length > 0}
               fallback={
                 <div class={ui.galleryEmpty}>
                   <span>No recent flames yet</span>
-                  <span class={ui.galleryEmptyHint}>
-                    Save a flame to see it here
-                  </span>
                 </div>
               }
             >
@@ -139,13 +135,6 @@ export function WelcomeScreen(props: WelcomeScreenProps) {
               <h1 class={ui.title}>Chaos Master</h1>
               <p class={ui.subtitle}>
                 Create beautiful fractal flames with WebGPU
-              </p>
-            </div>
-
-            <div class={ui.tagline}>
-              <h2 class={ui['tagline-title']}>Welcome to Chaos</h2>
-              <p class={ui['tagline-body']}>
-                Are you ready to create something beautiful?
               </p>
             </div>
 
