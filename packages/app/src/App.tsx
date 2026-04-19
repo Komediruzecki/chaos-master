@@ -30,6 +30,7 @@ import { applyColorMapToFlame } from './flame/colorMap'
 import { drawModeToImplFn } from './flame/drawMode'
 import { example1 } from './flame/examples/example1'
 import { Flam3 } from './flame/Flam3'
+import { pointInitModeToImplFn } from './flame/pointInitMode'
 import { accumulatedPointCount, qualityPointCountLimit, setCurrentQuality, setQualityPointCountLimit, } from './flame/renderStats'
 import { MAX_CAMERA_ZOOM_VALUE, MIN_CAMERA_ZOOM_VALUE, } from './flame/schema/flameSchema'
 import { generateTransformId, generateVariationId, } from './flame/transformFunction'
@@ -53,6 +54,7 @@ import type { QualityPreset } from './components/Quality/QualityPresets'
 import type { ColorInitMode } from './flame/colorInitMode'
 import type { ColorMap, Palette } from './flame/colorMap'
 import type { DrawMode } from './flame/drawMode'
+import type { PointInitMode } from './flame/pointInitMode'
 import type { FlameDescriptor, TransformFunction, } from './flame/schema/flameSchema'
 
 const EDGE_FADE_COLOR = {
@@ -84,6 +86,7 @@ export type ExportImageType = (canvas: HTMLCanvasElement) => void
 type AppProps = {
   flameFromQuery?: FlameDescriptor
   flameFromWelcome?: () => FlameDescriptor | undefined
+  resetFlameFromWelcome?: () => void
 }
 
 function App(props: AppProps) {
@@ -97,6 +100,9 @@ function App(props: AppProps) {
   const [showSidebar, setShowSidebar] = createSignal(true)
   const [selectedPaletteId, setSelectedPaletteId] =
     createSignal<string>('default')
+  const [selectedPalette, setSelectedPalette] = createSignal<
+    Palette | undefined
+  >(undefined)
   const [flameDescriptor, setFlameDescriptor, history] = createStoreHistory(
     createStore(
       structuredClone(
@@ -104,6 +110,14 @@ function App(props: AppProps) {
       ),
     ),
   )
+  createEffect(() => {
+    const newFlame = props.flameFromWelcome?.()
+    if (newFlame !== undefined) {
+      history.replace(structuredClone(newFlame))
+      props.resetFlameFromWelcome?.()
+    }
+  })
+
   const totalProbability = createMemo(() =>
     sum(Object.values(flameDescriptor.transforms).map((f) => f.probability)),
   )
@@ -122,6 +136,7 @@ function App(props: AppProps) {
 
   const handlePaletteSelect = (palette: Palette) => {
     setSelectedPaletteId(palette.id)
+    setSelectedPalette(palette)
     // Convert palette entries to color map entries and apply
     const entries = palette.entries.map((entry) => ({ a: entry.a, b: entry.b }))
     const colorMap: ColorMap = {
@@ -272,6 +287,7 @@ function App(props: AppProps) {
                   setQualityPointCountLimit={(fn) =>
                     setQualityPointCountLimit(() => fn)
                   }
+                  palette={selectedPalette()}
                 />
               </WheelZoomCamera2D>
             </AutoCanvas>
@@ -571,6 +587,41 @@ function App(props: AppProps) {
                 <span></span>
               </label>
               <label class={ui.labeledInput}>
+                <span>Point Init</span>
+                <select
+                  class={ui.select}
+                  value={flameDescriptor.renderSettings.pointInitMode}
+                  onChange={(ev) => {
+                    const mode = ev.currentTarget.value as PointInitMode
+                    document.startViewTransition(() => {
+                      setFlameDescriptor((draft) => {
+                        draft.renderSettings.pointInitMode = mode
+                      })
+                    })
+                  }}
+                >
+                  <For each={recordKeys(pointInitModeToImplFn)}>
+                    {(pointInitMode) => (
+                      <option value={pointInitMode}>{pointInitMode}</option>
+                    )}
+                  </For>
+                </select>
+                <span></span>
+              </label>
+              <Slider
+                label="Vibrancy"
+                value={flameDescriptor.renderSettings.vibrancy}
+                min={0}
+                max={1}
+                step={0.05}
+                onInput={(newVibrancy) => {
+                  setFlameDescriptor((draft) => {
+                    draft.renderSettings.vibrancy = newVibrancy
+                  })
+                }}
+                formatValue={(value) => value.toFixed(2)}
+              />
+              <label class={ui.labeledInput}>
                 <span>Background Color</span>
                 <ColorPicker
                   value={
@@ -674,7 +725,10 @@ export function Wrappers() {
   })
 
   const [dontShowAgain, setDontShowAgain] = createSignal(false)
-  const [showWelcome, setShowWelcome] = createSignal(!hasWelcomeBeenDismissed())
+  // Don't show welcome if there's a flame in the URL query
+  const [showWelcome, setShowWelcome] = createSignal(
+    !hasWelcomeBeenDismissed() && !flameFromQuery()
+  )
   const [selectedFlame, setSelectedFlame] = createSignal<
     FlameDescriptor | undefined
   >()
@@ -703,6 +757,9 @@ export function Wrappers() {
               <App
                 flameFromQuery={flameFromQuery()}
                 flameFromWelcome={selectedFlame}
+                resetFlameFromWelcome={() => {
+                  setSelectedFlame(undefined)
+                }}
               />
               {/* WelcomeScreen overlay on top */}
               <Show when={showWelcome()}>

@@ -1,10 +1,11 @@
 import { oklabToRgb } from '@typegpu/color'
 import { onCleanup } from 'solid-js'
 import { tgpu } from 'typegpu'
-import { arrayOf, builtin, f32, struct, vec2f, vec2i, vec3f, vec4f, } from 'typegpu/data'
-import { abs, div, log, max, mix, mul, pow, saturate, smoothstep, } from 'typegpu/std'
+import { arrayOf, builtin, f32, i32, struct, vec2f, vec2i, vec3f, vec4f, } from 'typegpu/data'
+import { abs, add, clamp, div, log, max, mix, mul, pow, saturate, smoothstep, sub, } from 'typegpu/std'
 import { Bucket, BUCKET_FIXED_POINT_MULTIPLIER_INV } from './types'
 import type { LayoutEntryToInput, TgpuRoot } from 'typegpu'
+import type { Palette } from './colorMap'
 import type { DrawModeFn } from './drawMode'
 
 export const ColorGradingUniforms = struct({
@@ -13,6 +14,17 @@ export const ColorGradingUniforms = struct({
   backgroundColor: vec4f,
   /** Adds a slight fade towards the edge of the viewport */
   edgeFadeColor: vec4f,
+  /** Vibrancy: 0 = none, 1 = full saturation boost in dense regions */
+  vibrancy: f32,
+  /** Number of palette entries */
+  paletteEntryCount: i32,
+})
+
+/** Palette entry: R=a, G=b, B=unused, A=position */
+export const PaletteEntry = struct({
+  a: f32,
+  b: f32,
+  position: f32,
 })
 
 const bindGroupLayout = tgpu.bindGroupLayout({
@@ -26,6 +38,10 @@ const bindGroupLayout = tgpu.bindGroupLayout({
     storage: arrayOf(Bucket),
     access: 'readonly',
   },
+  paletteBuffer: {
+    storage: arrayOf(PaletteEntry),
+    access: 'readonly',
+  },
 })
 
 export function createColorGradingPipeline(
@@ -37,6 +53,7 @@ export function createColorGradingPipeline(
   >,
   canvasFormat: GPUTextureFormat,
   drawMode: DrawModeFn,
+  palette: Palette | undefined,
 ) {
   const textureSizeBuffer = root
     .createBuffer(vec2i, vec2i(...textureSize))
@@ -46,10 +63,32 @@ export function createColorGradingPipeline(
     textureSizeBuffer.destroy()
   })
 
+  const entryCount = palette ? palette.entries.length : 1
+
+  // Create palette buffer using tgpu (avoids texture binding origin "handle" issues)
+  const paletteBuffer = root
+    .createBuffer(arrayOf(PaletteEntry, entryCount))
+    .$usage('storage')
+
+  if (palette) {
+    const sorted = [...palette.entries].sort((a, b) => a.position - b.position)
+    const entries = sorted.map((entry) => ({
+      a: entry.a,
+      b: entry.b,
+      position: entry.position,
+    }))
+    paletteBuffer.write(entries)
+  }
+
+  onCleanup(() => {
+    paletteBuffer.destroy()
+  })
+
   const bindGroup = root.createBindGroup(bindGroupLayout, {
     uniforms,
     accumulationBuffer,
     textureSize: textureSizeBuffer,
+    paletteBuffer,
   })
 
   const VertexOutput = {
@@ -72,9 +111,11 @@ export function createColorGradingPipeline(
     in: VertexOutput,
     out: vec4f,
   })(({ pos, uv }) => {
+    'use gpu'
     const uniforms = bindGroupLayout.$.uniforms
     const textureSize = bindGroupLayout.$.textureSize
     const accumulationBuffer = bindGroupLayout.$.accumulationBuffer
+
     const edgeFade =
       uniforms.edgeFadeColor.a * smoothstep(0.98, 1, max(abs(uv.x), abs(uv.y)))
     const backgroundColor = mix(
@@ -86,16 +127,67 @@ export function createColorGradingPipeline(
     const texelIndex = pos2i.y * textureSize.x + pos2i.x
     const tex = accumulationBuffer[texelIndex]!
     const count = f32(tex.count) * BUCKET_FIXED_POINT_MULTIPLIER_INV
-    const ab = div(
+    const texColorAb = div(
       mul(
         vec2f(f32(tex.color.a), f32(tex.color.b)),
         BUCKET_FIXED_POINT_MULTIPLIER_INV,
       ),
-      count,
+      max(count, f32(1)),
     )
-    const adjustedCount = 0.1 * count * uniforms.averagePointCountPerBucketInv
+
+    // density: normalized count where PREFILTER_WHITE=255 marks a "full" texel.
+    const density = div(
+      mul(count, uniforms.averagePointCountPerBucketInv),
+      f32(255),
+    )
+
+    let finalAb = vec2f(texColorAb)
+    if (uniforms.paletteEntryCount > i32(0) && uniforms.vibrancy > f32(0)) {
+      // Access palette via storage buffer (no texture binding = no origin "handle" issues)
+      const paletteBuffer = bindGroupLayout.$.paletteBuffer
+
+      // Log-density index for palette lookup.
+      const logDensity = clamp(log(add(count, f32(1))), f32(0), f32(10))
+      const paletteScale = f32(0.1)
+      const logDensityNorm = clamp(
+        mul(logDensity, paletteScale),
+        f32(0),
+        f32(1),
+      )
+
+      // Nearest-neighbor lookup: map logDensityNorm to palette entry index.
+      const idx = i32(mul(f32(uniforms.paletteEntryCount), logDensityNorm))
+      const clampedIdx = clamp(idx, i32(0), sub(uniforms.paletteEntryCount, i32(1)))
+      const entry = paletteBuffer[clampedIdx]!
+      const paletteAb = vec2f(entry.a, entry.b)
+
+      // Calculate alpha for vibrancy blend factor
+      const gamma = f32(0.5)
+      const linrange = f32(1.0)
+      const frac = div(density, linrange)
+      const funcval = pow(linrange, gamma)
+      const baseAlpha = add(
+        mul(mul(sub(f32(1), frac), density), div(funcval, linrange)),
+        mul(frac, pow(density, gamma)),
+      )
+
+      // Interpolate between texel-averaged color and palette-sampled color
+      const paletteBlend = clamp(
+        mul(uniforms.vibrancy, saturate(baseAlpha)),
+        f32(0),
+        f32(1),
+      )
+      finalAb = mix(texColorAb, paletteAb, paletteBlend)
+    }
+
+    // Brightness from log-count
+    const adjustedCount = mul(
+      mul(count, uniforms.averagePointCountPerBucketInv),
+      f32(0.1),
+    )
     const value = uniforms.exposure * pow(log(adjustedCount + 1), 0.4545)
-    const rgb = saturate(oklabToRgb(vec3f(drawMode(value), ab)))
+
+    const rgb = saturate(oklabToRgb(vec3f(drawMode(value), finalAb)))
     const alpha = saturate(value) * (1 - edgeFade)
     const rgba = vec4f(rgb, alpha)
     return mix(backgroundColor, rgba, alpha)

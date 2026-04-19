@@ -1,5 +1,6 @@
 import { For } from 'solid-js'
 import { defaultColorMaps } from '@/flame/colorMap'
+import { oklabToRgbForCss } from '@/flame/colors'
 import ui from './ColorMapSelector.module.css'
 import type { ColorMap } from '@/flame/colorMap'
 
@@ -31,7 +32,11 @@ export function ColorMapSelector(props: ColorMapSelectorProps) {
                     <div
                       class={ui.swatch}
                       style={{
-                        'background-color': `oklab(0.7 ${entry.a} ${entry.b})`,
+                        'background-color': oklabToRgbForCss(
+                          entry.a,
+                          entry.b,
+                          0.7,
+                        ),
                       }}
                     />
                   )}

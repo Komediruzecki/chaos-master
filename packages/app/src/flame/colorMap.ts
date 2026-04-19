@@ -47,7 +47,7 @@ export type Palette = {
   name: string
   entries: PaletteEntry[]
   /** Source of the palette */
-  source: 'builtin' | 'custom' | 'imported'
+  source: 'builtin' | 'custom' | 'imported' | 'official'
   createdAt?: number
 }
 
@@ -249,7 +249,7 @@ export function applyColorMapToFlame(
 ): void {
   const keys = Object.keys(flame.transforms)
   keys.forEach((key, index) => {
-    const entry = colorMap.entries[index % colorMap.entries.length]
+    const entry = colorMap.entries[index % colorMap.entries.length]!
     flame.transforms[key]!.color = { x: entry.a, y: entry.b }
   })
 }
