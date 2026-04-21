@@ -1,0 +1,6 @@
+name = "chaos-master-og"
+main = "src/index.ts"
+compatibility_date = "2024-04-15"
+
+# Free tier: 100k req/day, 10ms CPU time per request
+# Keep memory low — in-memory Map cache lives here
