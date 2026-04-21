@@ -3,6 +3,7 @@ import * as v from '@/valibot'
 import { AffineParamsSchema } from '../affineTranform'
 import { ColorInitMode } from '../colorInitMode'
 import { DrawMode } from '../drawMode'
+import { PointInitMode } from '../pointInitMode'
 import { TransformVariationDescriptor } from '../variations'
 
 // default values and schema fallbacks
@@ -24,6 +25,8 @@ const renderSettingsDefault: RenderSettings = {
   backgroundColor: backgroundColorDefault,
   camera: cameraDefault,
   colorInitMode: 'colorInitZero',
+  pointInitMode: 'pointInitUnitDisk',
+  vibrancy: 0.5,
 }
 export const latestSchemaVersion = '1.0'
 const MAX_LENGTH_AUTHOR_STRING = 255
@@ -67,6 +70,9 @@ const CameraObjSchema = v.object({
 
 const ColorValueSchema = v.pipe(v.number(), v.minValue(0), v.maxValue(1))
 
+const MIN_VIBRANCY_VALUE = 0
+const MAX_VIBRANCY_VALUE = 1
+
 type RenderSettings = v.InferOutput<typeof RenderSettings>
 const RenderSettings = v.object({
   exposure: v.pipe(
@@ -82,6 +88,15 @@ const RenderSettings = v.object({
   ),
   drawMode: v.optional(DrawMode, 'light'),
   colorInitMode: v.optional(ColorInitMode, 'colorInitZero'),
+  pointInitMode: v.optional(PointInitMode, 'pointInitUnitDisk'),
+  vibrancy: v.optional(
+    v.pipe(
+      v.number(),
+      v.minValue(MIN_VIBRANCY_VALUE),
+      v.maxValue(MAX_VIBRANCY_VALUE),
+    ),
+    0.5,
+  ),
   backgroundColor: v.optional(
     v.tuple([ColorValueSchema, ColorValueSchema, ColorValueSchema]),
   ),
