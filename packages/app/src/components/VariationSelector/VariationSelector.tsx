@@ -289,7 +289,7 @@ function ShowVariationSelector(props: VariationSelectorModalProps) {
                       <button
                         class={ui.item}
                         classList={{
-                          [ui.selected]: selectedItemId() === id,
+                          [ui.selected as string]: selectedItemId() === id,
                         }}
                         onClick={() => {
                           toggleSelectedItem(id)
