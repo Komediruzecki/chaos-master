@@ -307,6 +307,13 @@ export function applyTimelineToFlame(timeline: TimelineState, flame: FlameDescri
   const frame = timeline.currentFrame()
 
   console.log('[Timeline] Applying values at frame', frame)
+  console.log('[Timeline] Original flame values:', {
+    camera: flame.renderSettings.camera,
+    exposure: flame.renderSettings.exposure,
+    skipIters: flame.renderSettings.skipIters,
+    vibrancy: flame.renderSettings.vibrancy,
+    drawMode: flame.renderSettings.drawMode,
+  })
 
   // Animate camera position
   const xTrack = timeline.tracks().find((t: any) => t.parameterPath === 'camera.x') as any
@@ -402,4 +409,12 @@ export function applyTimelineToFlame(timeline: TimelineState, flame: FlameDescri
       flame.renderSettings.backgroundColor = value as unknown as [number, number, number]
     }
   }
+
+  console.log('[Timeline] Final flame values:', {
+    camera: flame.renderSettings.camera,
+    exposure: flame.renderSettings.exposure,
+    skipIters: flame.renderSettings.skipIters,
+    vibrancy: flame.renderSettings.vibrancy,
+    drawMode: flame.renderSettings.drawMode,
+  })
 }
