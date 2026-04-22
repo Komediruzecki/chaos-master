@@ -2,20 +2,30 @@
   height: 100dvh;
   display: grid;
   grid-template-columns: auto 1fr;
-  grid-template-rows: 1fr auto auto;
+  grid-template-rows: 1fr auto;
   grid-template-areas:
     'sidebar viewport'
-    'sidebar viewport-controls'
-    'sidebar timeline';
+    'sidebar viewport-controls';
   overflow: hidden;
 
   /* Start a stacking context so canvas doesn't go behind body */
   isolation: isolate;
 }
 
+.viewport-with-timeline {
+  grid-area: viewport;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
+}
+
+.viewport-content {
+  grid-row-end: timeline;
+  overflow: hidden;
+}
+
 .canvas-container {
   grid-area: viewport;
-  grid-row-end: viewport-controls;
   overflow: hidden;
   z-index: -1;
 
@@ -25,6 +35,19 @@
   &:not(.fullscreen) {
     /* allow canvas fade to go under the sidebar a bit */
     margin-left: -0.4rem;
+  }
+}
+
+.timeline-container {
+  grid-area: timeline;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--neutral-100);
+  border-top: 1px solid var(--neutral-200);
+
+  [data-theme='dark'] & {
+    background-color: var(--neutral-950);
+    border-top-color: var(--neutral-800);
   }
 }
 
@@ -312,4 +335,8 @@
 
 .affine-editor {
   min-height: 25vh;
+}
+
+.timeline-section {
+  margin-bottom: var(--space-2);
 }

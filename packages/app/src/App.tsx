@@ -22,6 +22,7 @@ import { Slider } from './components/Sliders/Slider'
 import { KeyframeEditor } from './components/Timeline/KeyframeEditor'
 import { TimelinePanel } from './components/Timeline/TimelinePanel'
 import { TimelineRuler } from './components/Timeline/TimelineRuler'
+import { TimelineSection } from './components/Timeline/TimelineSection'
 import { createVariationSelector } from './components/VariationSelector/VariationSelector'
 import { ViewControls } from './components/ViewControls/ViewControls'
 import { WelcomeScreen } from './components/WelcomeScreen/WelcomeScreen'
@@ -336,6 +337,10 @@ function App(props: AppProps) {
                       setQualityPointCountLimit(() => fn)
                     }
                     palette={selectedPalette()}
+                    onEnterAnimation={() => {
+                      const t = timeline()
+                      t.setIsPlaying(true)
+                    }}
                   />
                 </WheelZoomCamera2D>
               </AutoCanvas>
@@ -348,6 +353,15 @@ function App(props: AppProps) {
             pixelRatio={pixelRatio()}
             setPixelRatio={setPixelRatio}
           />
+
+          <div class={ui.timelineContainer}>
+            <TimelineSection
+              onEnterAnimation={() => {
+                const t = timeline()
+                t.setIsPlaying(true)
+              }}
+            />
+          </div>
           <Show when={showSidebar()}>
             <div class={ui.sidebar}>
               <AffineEditor
