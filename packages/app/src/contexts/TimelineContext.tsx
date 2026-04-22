@@ -24,8 +24,8 @@ export function createTimelineStateSignal() {
 export function TimelineProvider(props: { children: JSX.Element }) {
   const [timeline] = createTimelineStateSignal()
   return (
-    <TimelineContextProvider value={timeline()}>
+    <TimelineContext.Provider value={timeline()}>
       {props.children}
-    </TimelineContextProvider>
+    </TimelineContext.Provider>
   )
 }

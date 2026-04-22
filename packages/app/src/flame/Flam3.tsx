@@ -166,6 +166,11 @@ export function Flam3(props: Flam3Props) {
     return accumulatedPointCount <= qualityPointCountLimit()
   }
 
+  const currentBatchIndex = batchIndex()
+  const currentAccumulatedPointCount = accumulatedPointCount()
+  const currentForceDrawToScreen = forceDrawToScreen()
+  const currentClearRequested = clearRequested()
+
   const timestampQuery = createTimestampQuery(device, [
     'ifsMs',
     'adaptiveFilterMs',
@@ -244,9 +249,9 @@ export function Flam3(props: Flam3Props) {
       console.log('[Flam3] Pipeline update effect triggered, animatedFlame:', animatedFlame())
       ifsPipeline.update(animatedFlame())
       camera.update()
-      batchIndex = 0
-      accumulatedPointCount = 0
-      clearRequested = true
+      setBatchIndex(0)
+      setAccumulatedPointCount(0)
+      setClearRequested(true)
     })
 
     createEffect(() => {
@@ -269,7 +274,15 @@ export function Flam3(props: Flam3Props) {
     })
 
     console.log('[Flam3] RAF loop creation starting')
-    const rafLoop = createAnimationFrame(
+    const [batchIndex, setBatchIndex] = createSignal(0)
+    const [accumulatedPointCount, setAccumulatedPointCount] = createSignal(0)
+    const [forceDrawToScreen, setForceDrawToScreen] = createSignal(true)
+    const [clearRequested, setClearRequested] = createSignal(true)
+
+    let frameCount = 0
+    const rafLoop = createAnimationFrame((frameId) => {
+      frameCount++
+      console.log(`[Flam3] RAF loop callback executing, frame: ${frameCount}`)
       (frameId) => {
         /**
          * Rendering to screen is expensive because it involves
@@ -279,9 +292,9 @@ export function Flam3(props: Flam3Props) {
          * convergence speed.
          */
         const shouldRenderFinalImage =
-          forceDrawToScreen ||
-          batchIndex < OUTPUT_EVERY_FRAME_BATCH_INDEX ||
-          batchIndex % OUTPUT_INTERVAL_BATCH_INDEX === 0 ||
+          currentForceDrawToScreen ||
+          currentBatchIndex < OUTPUT_EVERY_FRAME_BATCH_INDEX ||
+          currentBatchIndex % OUTPUT_INTERVAL_BATCH_INDEX === 0 ||
           props.onExportImage !== undefined
 
         const pointCountPerBatch = props.pointCountPerBatch
@@ -292,13 +305,13 @@ export function Flam3(props: Flam3Props) {
 
         const encoder = device.createCommandEncoder()
 
-        if (clearRequested) {
-          clearRequested = false
+        if (currentClearRequested) {
+          setClearRequested(false)
           encoder.clearBuffer(accumulationBuffer.buffer)
         }
 
         const timings = timestampQuery.average()
-        const iterationCount = continueRendering(accumulatedPointCount)
+        const iterationCount = continueRendering(currentAccumulatedPointCount)
           ? timings
             ? estimateIterationCount(timings, shouldRenderFinalImage)
             : 1
@@ -324,15 +337,15 @@ export function Flam3(props: Flam3Props) {
             pass.end()
           }
 
-          accumulatedPointCount += pointCountPerBatch * iterationCount
+          setAccumulatedPointCount(
+            currentAccumulatedPointCount + pointCountPerBatch * iterationCount
+          )
         }
-
-        setAccumulatedPointCount(accumulatedPointCount)
 
         if (shouldRenderFinalImage) {
           colorGradingUniforms.writePartial({
             averagePointCountPerBucketInv:
-              bucketProbabilityInv() / accumulatedPointCount,
+              bucketProbabilityInv() / currentAccumulatedPointCount,
           })
           if (props.adaptiveFilterEnabled) {
             const pass = encoder.beginComputePass({
@@ -367,8 +380,8 @@ export function Flam3(props: Flam3Props) {
           .catch(() => {})
         props.onExportImage?.(canvas)
 
-        batchIndex += 1
-        forceDrawToScreen = false
+        setBatchIndex(currentBatchIndex + 1)
+        setForceDrawToScreen(false)
       },
       () => continueRendering(accumulatedPointCount) ? () => props.renderInterval : () => Infinity,
       () => device.queue.onSubmittedWorkDone(),

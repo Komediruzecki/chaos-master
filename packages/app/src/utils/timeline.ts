@@ -269,7 +269,7 @@ export function createTimelineState() {
     setCurrentFrame,
     config,
     setConfig,
-    tracks,
+    tracks: () => tracks(),
     setTracks,
     isPlaying,
     setIsPlaying,
@@ -327,7 +327,7 @@ export function applyTimelineToFlame(timeline: TimelineState, flame: FlameDescri
     console.log('[Timeline] No camera.x track found')
   }
 
-  const yTrack = timeline.tracks().find((t: any) => t.parameterPath === 'camera.y') as any
+  const yTrack = tracks.find((t: any) => t.parameterPath === 'camera.y') as any
   if (yTrack) {
     const value = resolveKeyframeValue(yTrack.keyframes, frame)
     console.log('[Timeline] camera.y value:', value)
@@ -338,7 +338,7 @@ export function applyTimelineToFlame(timeline: TimelineState, flame: FlameDescri
     console.log('[Timeline] No camera.y track found')
   }
 
-  const zoomTrack = timeline.tracks().find((t: any) => t.parameterPath === 'camera.zoom') as any
+  const zoomTrack = tracks.find((t: any) => t.parameterPath === 'camera.zoom') as any
   if (zoomTrack) {
     const value = resolveKeyframeValue(zoomTrack.keyframes, frame)
     console.log('[Timeline] camera.zoom value:', value)
@@ -353,7 +353,7 @@ export function applyTimelineToFlame(timeline: TimelineState, flame: FlameDescri
   console.log('[Timeline] Final camera zoom:', flame.renderSettings.camera?.zoom)
 
   // Animate flame parameters
-  const exposureTrack = timeline.tracks().find((t: any) => t.parameterPath === 'exposure') as any
+  const exposureTrack = tracks.find((t: any) => t.parameterPath === 'exposure') as any
   if (exposureTrack) {
     const value = resolveKeyframeValue(exposureTrack.keyframes, frame)
     console.log('[Timeline] exposure value:', value)
@@ -362,7 +362,7 @@ export function applyTimelineToFlame(timeline: TimelineState, flame: FlameDescri
     }
   }
 
-  const skipItersTrack = timeline.tracks().find((t: any) => t.parameterPath === 'skipIters') as any
+  const skipItersTrack = tracks.find((t: any) => t.parameterPath === 'skipIters') as any
   if (skipItersTrack) {
     const value = resolveKeyframeValue(skipItersTrack.keyframes, frame)
     console.log('[Timeline] skipIters value:', value)
@@ -371,7 +371,7 @@ export function applyTimelineToFlame(timeline: TimelineState, flame: FlameDescri
     }
   }
 
-  const vibrancyTrack = timeline.tracks().find((t: any) => t.parameterPath === 'vibrancy') as any
+  const vibrancyTrack = tracks.find((t: any) => t.parameterPath === 'vibrancy') as any
   if (vibrancyTrack) {
     const value = resolveKeyframeValue(vibrancyTrack.keyframes, frame)
     console.log('[Timeline] vibrancy value:', value)
@@ -380,7 +380,7 @@ export function applyTimelineToFlame(timeline: TimelineState, flame: FlameDescri
     }
   }
 
-  const drawModeTrack = timeline.tracks().find((t: any) => t.parameterPath === 'drawMode') as any
+  const drawModeTrack = tracks.find((t: any) => t.parameterPath === 'drawMode') as any
   if (drawModeTrack) {
     const value = resolveKeyframeValue(drawModeTrack.keyframes, frame)
     console.log('[Timeline] drawMode value:', value)
@@ -390,7 +390,7 @@ export function applyTimelineToFlame(timeline: TimelineState, flame: FlameDescri
   }
 
   // Animate string parameters (colorInitMode, pointInitMode)
-  const colorInitModeTrack = timeline.tracks().find((t: any) => t.parameterPath === 'colorInitMode') as any
+  const colorInitModeTrack = tracks.find((t: any) => t.parameterPath === 'colorInitMode') as any
   if (colorInitModeTrack) {
     const value = resolveKeyframeValue(colorInitModeTrack.keyframes, frame)
     console.log('[Timeline] colorInitMode value:', value)
@@ -399,7 +399,7 @@ export function applyTimelineToFlame(timeline: TimelineState, flame: FlameDescri
     }
   }
 
-  const pointInitModeTrack = timeline.tracks().find((t: any) => t.parameterPath === 'pointInitMode') as any
+  const pointInitModeTrack = tracks.find((t: any) => t.parameterPath === 'pointInitMode') as any
   if (pointInitModeTrack) {
     const value = resolveKeyframeValue(pointInitModeTrack.keyframes, frame)
     console.log('[Timeline] pointInitMode value:', value)
@@ -409,7 +409,7 @@ export function applyTimelineToFlame(timeline: TimelineState, flame: FlameDescri
   }
 
   // Animate backgroundColor (array of 3 numbers)
-  const backgroundColorTrack = timeline.tracks().find((t: any) => t.parameterPath === 'backgroundColor') as any
+  const backgroundColorTrack = tracks.find((t: any) => t.parameterPath === 'backgroundColor') as any
   if (backgroundColorTrack) {
     const value = resolveKeyframeValue(backgroundColorTrack.keyframes, frame)
     console.log('[Timeline] backgroundColor value:', value)

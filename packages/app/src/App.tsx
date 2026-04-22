@@ -28,6 +28,7 @@ import { WelcomeScreen } from './components/WelcomeScreen/WelcomeScreen'
 import { ChangeHistoryContextProvider } from './contexts/ChangeHistoryContext'
 import { ThemeContextProvider, useTheme } from './contexts/ThemeContext'
 import { TimelineContextProvider } from './contexts/TimelineContext'
+import { addKeyframeToTimeline } from './utils/timeline'
 import { DEFAULT_POINT_COUNT, DEFAULT_QUALITY, DEFAULT_RENDER_INTERVAL_MS, DEFAULT_RESOLUTION, } from './defaults'
 import { colorInitModeToImplFn } from './flame/colorInitMode'
 import { applyColorMapToFlame } from './flame/colorMap'
@@ -258,11 +259,44 @@ function App(props: AppProps) {
     }
   }
 
-  const timeline = createTimelineState()
+  const [timeline] = createTimelineStateSignal()
+
+  // Add initial keyframes for camera animation
+  createEffect(() => {
+    const t = timeline()
+    const tracks = t.tracks()
+    const currentFrame = t.currentFrame()
+
+    // Add camera keyframes if they don't exist
+    const hasCameraX = tracks.some((track: any) => track.parameterPath === 'camera.x')
+    const hasCameraY = tracks.some((track: any) => track.parameterPath === 'camera.y')
+    const hasCameraZoom = tracks.some((track: any) => track.parameterPath === 'camera.zoom')
+
+    if (!hasCameraX || !hasCameraY || !hasCameraZoom) {
+      addKeyframeToTimeline(
+        t,
+        'camera.x',
+        currentFrame,
+        flameDescriptor.renderSettings.camera.position[0]
+      )
+      addKeyframeToTimeline(
+        t,
+        'camera.y',
+        currentFrame,
+        flameDescriptor.renderSettings.camera.position[1]
+      )
+      addKeyframeToTimeline(
+        t,
+        'camera.zoom',
+        currentFrame,
+        flameDescriptor.renderSettings.camera.zoom
+      )
+    }
+  })
 
   return (
     <ChangeHistoryContextProvider value={history}>
-      <TimelineContextProvider value={timeline}>
+      <TimelineContextProvider value={timeline()}>
         <Dropzone class={ui.layout} onDrop={onDrop}>
           <>
             <div
