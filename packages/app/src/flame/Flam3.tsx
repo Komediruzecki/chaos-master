@@ -86,8 +86,12 @@ export function Flam3(props: Flam3Props) {
     .createBuffer(arrayOf(vec2u, props.pointCountPerBatch))
     .$usage('storage')
 
+  // Track buffers that need cleanup to avoid destroying while GPU still references them
+  const [buffersToCleanup, setBuffersToCleanup] = createSignal<Set<unknown>>(new Set())
+
   onCleanup(() => {
-    pointRandomSeeds.destroy()
+    // Mark for cleanup after GPU work completes
+    setBuffersToCleanup(current => new Set([...current, pointRandomSeeds]))
   })
 
   const colorGradingUniforms = root
@@ -102,7 +106,9 @@ export function Flam3(props: Flam3Props) {
     .$usage('uniform')
 
   onCleanup(() => {
-    colorGradingUniforms.destroy()
+    // Mark for cleanup after GPU work completes
+    const current = buffersToCleanup()
+    setBuffersToCleanup(new Set([...current, colorGradingUniforms]))
   })
 
   const outputTextures = createMemo(() => {
@@ -119,16 +125,28 @@ export function Flam3(props: Flam3Props) {
       .createBuffer(arrayOf(Bucket, width * height))
       .$usage('storage')
 
-    onCleanup(() => {
-      accumulationBuffer.destroy()
-      postprocessBuffer.destroy()
-    })
-
     return {
       accumulationBuffer,
       postprocessBuffer,
       textureSize: [width, height] as const,
     }
+  })
+
+  // Properly clean up buffers after GPU work completes
+  createEffect(() => {
+    const buffers = buffersToCleanup()
+    if (buffers.size === 0) return
+
+    device.queue.onSubmittedWorkDone().then(() => {
+      buffers.forEach((buffer: unknown) => {
+        try {
+          (buffer as { destroy: () => void }).destroy()
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      })
+      setBuffersToCleanup(new Set())
+    })
   })
 
   const colorGradingPipeline = createMemo(() => {
@@ -361,10 +379,23 @@ export function Flam3(props: Flam3Props) {
         timestampQuery.write(encoder)
         device.queue.submit([encoder.finish()])
 
-        device.queue
-          .onSubmittedWorkDone()
-          .then(() => timestampQuery.read(frameId))
-          .catch(() => {})
+        // Mark buffers for cleanup after GPU work completes
+        const workDonePromise = device.queue.onSubmittedWorkDone()
+
+        workDonePromise.then(() => {
+          const currentBuffers = outputTextures()?.accumulationBuffer || outputTextures()?.postprocessBuffer
+          if (currentBuffers) {
+            const cleanupSet = buffersToCleanup()
+            if (cleanupSet && !cleanupSet.has(currentBuffers)) {
+              setBuffersToCleanup(new Set([...cleanupSet, currentBuffers]))
+            }
+          }
+        }).catch(() => {})
+
+        workDonePromise.then(() => {
+          timestampQuery.read(frameId).catch(() => {})
+        }).catch(() => {})
+
         props.onExportImage?.(canvas)
 
         setBatchIndex(batchIndex() + 1)
