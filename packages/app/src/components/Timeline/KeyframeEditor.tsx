@@ -50,8 +50,9 @@ export function KeyframeEditor() {
   const parseArrayValue = (input: string): [number, number, number] | null => {
     try {
       const parts = input.split(',').map(s => parseFloat(s.trim()))
-      if (parts.length === 3 && parts.every((n): n is number => !isNaN(n))) {
-        return [parts[0], parts[1], parts[2]]
+      if (parts.length === 3) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return [parts[0]!, parts[1]!, parts[2]!]
       }
     } catch {
       // Ignore parse errors

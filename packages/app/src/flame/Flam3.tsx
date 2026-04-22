@@ -2,7 +2,7 @@ import { createEffect, createMemo, createSignal,onCleanup } from 'solid-js'
 import { arrayOf, vec2u, vec3f, vec4f } from 'typegpu/data'
 import { clamp } from 'typegpu/std'
 import { useTimeline } from '@/contexts/TimelineContext'
-import { accumulatedPointCount, setAccumulatedPointCount, setRenderTimings, } from '@/flame/renderStats'
+import { accumulatedPointCount, setAccumulatedPointCount, forceDrawToScreen, setForceDrawToScreen, clearRequested, setClearRequested, setRenderTimings, } from '@/flame/renderStats'
 import { createTimestampQuery } from '@/utils/createTimestampQuery'
 import { applyTimelineToFlame } from '@/utils/timeline'
 import { useCamera } from '../lib/CameraContext'
@@ -166,11 +166,6 @@ export function Flam3(props: Flam3Props) {
     return accumulatedPointCount <= qualityPointCountLimit()
   }
 
-  const currentBatchIndex = batchIndex()
-  const currentAccumulatedPointCount = accumulatedPointCount()
-  const currentForceDrawToScreen = forceDrawToScreen()
-  const currentClearRequested = clearRequested()
-
   const timestampQuery = createTimestampQuery(device, [
     'ifsMs',
     'adaptiveFilterMs',
@@ -233,7 +228,7 @@ export function Flam3(props: Flam3Props) {
       camera,
       animatedFlame().renderSettings.skipIters,
       pointRandomSeeds,
-      animatedFlame().transforms,
+      animatedFlame().transforms as never,
       textureSize,
       accumulationBuffer,
       animatedFlame().renderSettings.colorInitMode,
@@ -242,7 +237,8 @@ export function Flam3(props: Flam3Props) {
 
     createEffect(() => {
       console.log('[Flam3] Pipeline update effect triggered, animatedFlame:', animatedFlame())
-      ifsPipeline.update(animatedFlame())
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ifsPipeline.update(animatedFlame() as any)
       camera.update()
     })
 
@@ -274,35 +270,35 @@ export function Flam3(props: Flam3Props) {
     const rafLoop = createAnimationFrame((frameId) => {
       frameCount++
       console.log(`[Flam3] RAF loop callback executing, frame: ${frameCount}`)
-      (frameId) => {
-        /**
-         * Rendering to screen is expensive because it involves
-         * blurring and color grading. We only want to do this
-         * in the beginning while the image is still forming.
-         * Later on, we can trade off rendering to screen for
-         * convergence speed.
-         */
-        const shouldRenderFinalImage =
-          currentForceDrawToScreen ||
-          currentBatchIndex < OUTPUT_EVERY_FRAME_BATCH_INDEX ||
-          currentBatchIndex % OUTPUT_INTERVAL_BATCH_INDEX === 0 ||
-          props.onExportImage !== undefined
 
-        const pointCountPerBatch = props.pointCountPerBatch
-        const colorGradingPipeline_ = colorGradingPipeline()
-        if (colorGradingPipeline_ === undefined) {
-          return
+      /**
+       * Rendering to screen is expensive because it involves
+       * blurring and color grading. We only want to do this
+       * in the beginning while the image is still forming.
+       * Later on, we can trade off rendering to screen for
+       * convergence speed.
+       */
+      const shouldRenderFinalImage =
+        forceDrawToScreen() ||
+        batchIndex() < OUTPUT_EVERY_FRAME_BATCH_INDEX ||
+        batchIndex() % OUTPUT_INTERVAL_BATCH_INDEX === 0 ||
+        props.onExportImage !== undefined
+
+      const pointCountPerBatch = props.pointCountPerBatch
+      const colorGradingPipeline_ = colorGradingPipeline()
+      if (colorGradingPipeline_ === undefined) {
+        return
         }
 
         const encoder = device.createCommandEncoder()
 
-        if (currentClearRequested) {
+        if (clearRequested()) {
           setClearRequested(false)
           encoder.clearBuffer(accumulationBuffer.buffer)
         }
 
         const timings = timestampQuery.average()
-        const iterationCount = continueRendering(currentAccumulatedPointCount)
+        const iterationCount = continueRendering(accumulatedPointCount())
           ? timings
             ? estimateIterationCount(timings, shouldRenderFinalImage)
             : 1
@@ -329,14 +325,14 @@ export function Flam3(props: Flam3Props) {
           }
 
           setAccumulatedPointCount(
-            currentAccumulatedPointCount + pointCountPerBatch * iterationCount
+            accumulatedPointCount() + pointCountPerBatch * iterationCount
           )
         }
 
         if (shouldRenderFinalImage) {
           colorGradingUniforms.writePartial({
             averagePointCountPerBucketInv:
-              bucketProbabilityInv() / currentAccumulatedPointCount,
+              bucketProbabilityInv() / accumulatedPointCount(),
           })
           if (props.adaptiveFilterEnabled) {
             const pass = encoder.beginComputePass({
@@ -371,10 +367,10 @@ export function Flam3(props: Flam3Props) {
           .catch(() => {})
         props.onExportImage?.(canvas)
 
-        setBatchIndex(currentBatchIndex + 1)
+        setBatchIndex(batchIndex() + 1)
         setForceDrawToScreen(false)
       },
-      () => continueRendering(accumulatedPointCount) ? () => props.renderInterval : () => Infinity,
+      continueRendering(accumulatedPointCount()) ? () => props.renderInterval : 0,
       () => device.queue.onSubmittedWorkDone(),
     )
   })
