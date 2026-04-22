@@ -240,18 +240,10 @@ export function Flam3(props: Flam3Props) {
       animatedFlame().renderSettings.pointInitMode,
     )
 
-    let batchIndex = 0
-    let accumulatedPointCount = 0
-    let forceDrawToScreen = true
-    let clearRequested = true
-
     createEffect(() => {
       console.log('[Flam3] Pipeline update effect triggered, animatedFlame:', animatedFlame())
       ifsPipeline.update(animatedFlame())
       camera.update()
-      setBatchIndex(0)
-      setAccumulatedPointCount(0)
-      setClearRequested(true)
     })
 
     createEffect(() => {
@@ -263,7 +255,6 @@ export function Flam3(props: Flam3Props) {
         vibrancy: animatedFlame().renderSettings.vibrancy,
         paletteEntryCount: props.palette?.entries.length ?? 0,
       })
-      forceDrawToScreen = true
     })
 
     createEffect(() => {
