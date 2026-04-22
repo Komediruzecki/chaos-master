@@ -184,6 +184,8 @@ export function Flam3(props: Flam3Props) {
       timeline.advanceFrame()
     }, intervalMs)
 
+    console.log('[Flam3] Animation playback started')
+
     onCleanup(() => {
       clearInterval(intervalId)
     })
@@ -205,12 +207,15 @@ export function Flam3(props: Flam3Props) {
   }
 
   createEffect(() => {
+    console.log('[Flam3] outputTextures effect triggered')
     const o = outputTextures()
     if (!o) {
+      console.log('[Flam3] No output textures available')
       return undefined
     }
 
     const { textureSize, accumulationBuffer } = o
+    console.log('[Flam3] Creating pipeline with camera:', camera, 'animatedFlame:', animatedFlame())
 
     const ifsPipeline = createIFSPipeline(
       root,
@@ -230,6 +235,7 @@ export function Flam3(props: Flam3Props) {
     let clearRequested = true
 
     createEffect(() => {
+      console.log('[Flam3] Pipeline update effect triggered, animatedFlame:', animatedFlame())
       ifsPipeline.update(animatedFlame())
       camera.update()
       batchIndex = 0
@@ -238,6 +244,7 @@ export function Flam3(props: Flam3Props) {
     })
 
     createEffect(() => {
+      console.log('[Flam3] Uniforms write effect triggered')
       colorGradingUniforms.writePartial({
         exposure: 2 * Math.exp(animatedFlame().renderSettings.exposure),
         edgeFadeColor: props.onExportImage ? vec4f(0) : props.edgeFadeColor,
@@ -249,6 +256,7 @@ export function Flam3(props: Flam3Props) {
     })
 
     createEffect(() => {
+      console.log('[Flam3] Color grading pipeline change detected')
       // redraw when these change
       const _ = colorGradingPipeline()
       void props.palette // track palette changes
