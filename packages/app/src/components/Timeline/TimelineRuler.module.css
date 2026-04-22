@@ -37,7 +37,8 @@
   display: flex;
   height: 100%;
   pointer-events: none;
-  padding-left: 100px; // Offset for transport controls
+  padding-left: 100px;
+  /* Offset for transport controls */
 
   [data-theme='dark'] & {
     padding-left: 80px;

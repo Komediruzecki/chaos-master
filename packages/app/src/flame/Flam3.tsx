@@ -1,9 +1,10 @@
-import { createEffect, createMemo, onCleanup, createSignal } from 'solid-js'
+import { createEffect, createMemo, createSignal,onCleanup } from 'solid-js'
 import { arrayOf, vec2u, vec3f, vec4f } from 'typegpu/data'
 import { clamp } from 'typegpu/std'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { accumulatedPointCount, setAccumulatedPointCount, setRenderTimings, } from '@/flame/renderStats'
 import { createTimestampQuery } from '@/utils/createTimestampQuery'
+import { applyToFlame as applyTimelineToFlame  } from '@/utils/timeline'
 import { useCamera } from '../lib/CameraContext'
 import { useCanvas } from '../lib/CanvasContext'
 import { useRootContext } from '../lib/RootContext'
@@ -18,7 +19,7 @@ import type { v4f } from 'typegpu/data'
 import type { Palette } from './colorMap'
 import type { FlameDescriptor } from './schema/flameSchema'
 import type { ExportImageType } from '@/App'
-import { applyToFlame as applyTimelineToFlame, type FlameDescriptor as TimelineFlameDescriptor } from '@/utils/timeline'
+import type {FlameDescriptor as TimelineFlameDescriptor} from '@/utils/timeline';
 
 const { sqrt, floor } = Math
 
@@ -51,7 +52,7 @@ export function Flam3(props: Flam3Props) {
 
   // Apply timeline values to animatedFlame
   createEffect(() => {
-    const flame = { ...props.flameDescriptor } as any
+    const flame = { ...props.flameDescriptor } as FlameDescriptor
     applyTimelineToFlame(flame)
     setAnimatedFlame(flame)
   })

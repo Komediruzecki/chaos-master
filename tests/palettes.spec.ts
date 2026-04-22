@@ -1,5 +1,5 @@
-import type { Page } from '@playwright/test'
 import { dismissWelcomeIfPresent, expect, test } from './helpers'
+// import type { Page } from '@playwright/test'
 
 test.describe('Palette System', () => {
   test.beforeEach(async ({ page }) => {

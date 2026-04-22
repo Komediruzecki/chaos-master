@@ -157,7 +157,11 @@ export function createColorGradingPipeline(
 
       // Nearest-neighbor lookup: map logDensityNorm to palette entry index.
       const idx = i32(mul(f32(uniforms.paletteEntryCount), logDensityNorm))
-      const clampedIdx = clamp(idx, i32(0), sub(uniforms.paletteEntryCount, i32(1)))
+      const clampedIdx = clamp(
+        idx,
+        i32(0),
+        sub(uniforms.paletteEntryCount, i32(1)),
+      )
       const entry = paletteBuffer[clampedIdx]!
       const paletteAb = vec2f(entry.a, entry.b)
 

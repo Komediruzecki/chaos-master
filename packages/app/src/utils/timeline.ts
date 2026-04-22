@@ -1,10 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/strict-boolean-expressions */
 import { createSignal } from 'solid-js'
 import { applyEasing, clamp, lerp } from './easing'
+import type { FlameDescriptor as FlameSchemaDescriptor } from '@/flame/schema/flameSchema'
 import type { EasingCurve } from '@/flame/schema/timeline'
 
-export interface FlameDescriptor {
-  version?: string
-  metadata: { author: string }
+export interface FlameDescriptor extends Omit<FlameSchemaDescriptor, 'pointInitMode' | 'drawMode' | 'colorInitMode'> {
   renderSettings: {
     exposure: number
     skipIters: number
@@ -18,7 +18,7 @@ export interface FlameDescriptor {
       position: [number, number]
     }
   }
-  transforms: Record<string, any>
+  transforms: Record<string, unknown>
 }
 
 export type KeyframeData = {
@@ -141,7 +141,7 @@ export function createTimelineState() {
           t.parameterPath === parameterPath
             ? {
                 ...t,
-                keyframes: t.keyframes.filter((kf: any) => kf.frame !== frame),
+                keyframes: t.keyframes.filter((kf) => kf.frame !== frame),
               }
             : t,
         )
@@ -152,7 +152,7 @@ export function createTimelineState() {
   function getKeysForFrame(frame: number): Record<string, boolean> {
     const result: Record<string, boolean> = {}
     for (const track of tracks()) {
-      const hasKf = track.keyframes.some((kf: any) => kf.frame === frame)
+      const hasKf = track.keyframes.some((kf) => kf.frame === frame)
       if (hasKf) {
         result[track.parameterPath] = true
       }
@@ -161,15 +161,15 @@ export function createTimelineState() {
   }
 
   function hasKeyframeAtFrame(parameterPath: string, frame: number): boolean {
-    const track = tracks().find((t: any) => t.parameterPath === parameterPath)
-    return track?.keyframes.some((kf: any) => kf.frame === frame) ?? false
+    const track = tracks().find((t) => t.parameterPath === parameterPath)
+    return track?.keyframes.some((kf) => kf.frame === frame) ?? false
   }
 
   function resolveValueAtPath(
     parameterPath: string,
     frame: number,
   ): number | null {
-    const track = tracks().find((t: any) => t.parameterPath === parameterPath)
+    const track = tracks().find((t) => t.parameterPath === parameterPath)
     if (!track) return null
     return resolveKeyframeValue(track.keyframes, frame)
   }
@@ -195,8 +195,7 @@ export function createTimelineState() {
   }
 
   function goToFrame(frame: number) {
-    const cfg = config()
-    setCurrentFrame(clamp(frame, cfg.startFrame, cfg.endFrame))
+    setCurrentFrame(clamp(frame, config().startFrame, config().endFrame))
   }
 
   /**
@@ -205,75 +204,62 @@ export function createTimelineState() {
    */
   function applyToFlame(flame: FlameDescriptor): void {
     const frame = currentFrame()
-    const cfg = config()
 
     // Animate camera position
-    if (flame.renderSettings?.camera?.position) {
-      const xTrack = tracks().find((t: any) => t.parameterPath === 'camera.x')
-      if (xTrack) {
-        const value = resolveKeyframeValue(xTrack.keyframes, frame)
-        if (value !== null) {
-          flame.renderSettings.camera.position[0] = value
-        }
-      }
-
-      const yTrack = tracks().find((t: any) => t.parameterPath === 'camera.y')
-      if (yTrack) {
-        const value = resolveKeyframeValue(yTrack.keyframes, frame)
-        if (value !== null) {
-          flame.renderSettings.camera.position[1] = value
-        }
+    const xTrack = tracks().find((t: any) => t.parameterPath === 'camera.x') as any
+    if (xTrack) {
+      const value = resolveKeyframeValue(xTrack.keyframes, frame)
+      if (value !== null && flame.renderSettings.camera) {
+        flame.renderSettings.camera.position[0] = value
       }
     }
 
-    if (flame.renderSettings?.camera?.zoom !== undefined) {
-      const track = tracks().find((t: any) => t.parameterPath === 'camera.zoom')
-      if (track) {
-        const value = resolveKeyframeValue(track.keyframes, frame)
-        if (value !== null) {
-          flame.renderSettings.camera.zoom = value
-        }
+    const yTrack = tracks().find((t: any) => t.parameterPath === 'camera.y') as any
+    if (yTrack) {
+      const value = resolveKeyframeValue(yTrack.keyframes, frame)
+      if (value !== null) {
+        flame.renderSettings.camera.position[1] = value
+      }
+    }
+
+    const zoomTrack = tracks().find((t: any) => t.parameterPath === 'camera.zoom') as any
+    if (zoomTrack) {
+      const value = resolveKeyframeValue(zoomTrack.keyframes, frame)
+      if (value !== null) {
+        flame.renderSettings.camera.zoom = value
       }
     }
 
     // Animate flame parameters
-    if (flame.renderSettings?.exposure !== undefined) {
-      const track = tracks().find((t: any) => t.parameterPath === 'exposure')
-      if (track) {
-        const value = resolveKeyframeValue(track.keyframes, frame)
-        if (value !== null) {
-          flame.renderSettings.exposure = value
-        }
+    const exposureTrack = tracks().find((t: any) => t.parameterPath === 'exposure') as any
+    if (exposureTrack) {
+      const value = resolveKeyframeValue(exposureTrack.keyframes, frame)
+      if (value !== null) {
+        flame.renderSettings.exposure = value
       }
     }
 
-    if (flame.renderSettings?.skipIters !== undefined) {
-      const track = tracks().find((t: any) => t.parameterPath === 'skipIters')
-      if (track) {
-        const value = resolveKeyframeValue(track.keyframes, frame)
-        if (value !== null) {
-          flame.renderSettings.skipIters = value
-        }
+    const skipItersTrack = tracks().find((t: any) => t.parameterPath === 'skipIters') as any
+    if (skipItersTrack) {
+      const value = resolveKeyframeValue(skipItersTrack.keyframes, frame)
+      if (value !== null) {
+        flame.renderSettings.skipIters = value
       }
     }
 
-    if (flame.renderSettings?.vibrancy !== undefined) {
-      const track = tracks().find((t: any) => t.parameterPath === 'vibrancy')
-      if (track) {
-        const value = resolveKeyframeValue(track.keyframes, frame)
-        if (value !== null) {
-          flame.renderSettings.vibrancy = value
-        }
+    const vibrancyTrack = tracks().find((t: any) => t.parameterPath === 'vibrancy') as any
+    if (vibrancyTrack) {
+      const value = resolveKeyframeValue(vibrancyTrack.keyframes, frame)
+      if (value !== null) {
+        flame.renderSettings.vibrancy = value
       }
     }
 
-    if (flame.renderSettings?.drawMode !== undefined) {
-      const track = tracks().find((t: any) => t.parameterPath === 'drawMode')
-      if (track) {
-        const value = resolveKeyframeValue(track.keyframes, frame)
-        if (value !== null) {
-          flame.renderSettings.drawMode = value as 'light' | 'paint'
-        }
+    const drawModeTrack = tracks().find((t: any) => t.parameterPath === 'drawMode') as any
+    if (drawModeTrack) {
+      const value = resolveKeyframeValue(drawModeTrack.keyframes, frame)
+      if (value !== null) {
+        flame.renderSettings.drawMode = (value > 0.5 ? 'paint' : 'light')
       }
     }
   }
@@ -300,3 +286,69 @@ export function createTimelineState() {
 }
 
 export type TimelineState = ReturnType<typeof createTimelineState>
+
+/**
+ * Applies timeline values to a flame descriptor for the current frame.
+ * This function is the module-level version used by components.
+ */
+export function applyTimelineToFlame(flame: FlameDescriptor): void {
+  const frame = currentFrame()
+
+  // Animate camera position
+  const xTrack = tracks().find((t) => t.parameterPath === 'camera.x')
+  if (xTrack) {
+    const value = resolveKeyframeValue(xTrack.keyframes, frame)
+    if (value !== null && flame.renderSettings.camera) {
+      flame.renderSettings.camera.position[0] = value
+    }
+  }
+
+  const yTrack = tracks().find((t) => t.parameterPath === 'camera.y')
+  if (yTrack) {
+    const value = resolveKeyframeValue(yTrack.keyframes, frame)
+    if (value !== null && flame.renderSettings.camera) {
+      flame.renderSettings.camera.position[1] = value
+    }
+  }
+
+  const zoomTrack = tracks().find((t: any) => t.parameterPath === 'camera.zoom') as any
+  if (zoomTrack) {
+    const value = resolveKeyframeValue(zoomTrack.keyframes, frame)
+    if (value !== null && flame.renderSettings.camera) {
+      flame.renderSettings.camera.zoom = value
+    }
+  }
+
+  // Animate flame parameters
+  const exposureTrack = tracks().find((t: any) => t.parameterPath === 'exposure') as any
+  if (exposureTrack) {
+    const value = resolveKeyframeValue(exposureTrack.keyframes, frame)
+    if (value !== null) {
+      flame.renderSettings.exposure = value
+    }
+  }
+
+  const skipItersTrack = tracks().find((t: any) => t.parameterPath === 'skipIters') as any
+  if (skipItersTrack) {
+    const value = resolveKeyframeValue(skipItersTrack.keyframes, frame)
+    if (value !== null) {
+      flame.renderSettings.skipIters = value
+    }
+  }
+
+  const vibrancyTrack = tracks().find((t: any) => t.parameterPath === 'vibrancy') as any
+  if (vibrancyTrack) {
+    const value = resolveKeyframeValue(vibrancyTrack.keyframes, frame)
+    if (value !== null) {
+      flame.renderSettings.vibrancy = value
+    }
+  }
+
+  const drawModeTrack = tracks().find((t: any) => t.parameterPath === 'drawMode') as any
+  if (drawModeTrack) {
+    const value = resolveKeyframeValue(drawModeTrack.keyframes, frame)
+    if (value !== null) {
+      flame.renderSettings.drawMode = (value > 0.5 ? 'paint' : 'light')
+    }
+  }
+}

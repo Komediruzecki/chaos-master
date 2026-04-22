@@ -1,11 +1,10 @@
 import { createEffect, createMemo, createSignal } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
-import type { TimelineTrack } from '@/utils/timeline'
 import ui from './KeyframeEditor.module.css'
+import type { KeyframeData, TimelineTrack } from '@/utils/timeline'
 
 export function KeyframeEditor() {
   const timeline = useTimeline()
-  const config = timeline.config()
   const currentFrame = timeline.currentFrame
   const tracks = timeline.tracks
 
@@ -21,8 +20,8 @@ export function KeyframeEditor() {
 
   // Find current value for selected path at current frame
   const currentValue = createMemo(() => {
-    const value = timeline.resolveValueAtPath(currentPath(), currentFrame())
-    return value as number | null
+    const value = timeline.resolveValueAtPath(currentPath(), currentFrame()) ?? null
+    return value
   })
 
   // Update value when frame changes
@@ -35,7 +34,7 @@ export function KeyframeEditor() {
 
   // Add keyframe at current frame
   const handleAddKeyframe = () => {
-    const track = timeline.tracks()[currentPath()]
+    const track = timeline.tracks().find(t => t.parameterPath === currentPath())
     const value = keyframeValue()
     if (track === undefined) return
 
@@ -49,7 +48,8 @@ export function KeyframeEditor() {
 
   const hasKeyframeAtFrame = (): boolean => {
     const t = track()
-    return (t !== undefined && t.keyframes.some((kf: any) => kf.frame === currentFrame())) ?? false
+    if (!t) return false
+    return t.keyframes.some((kf: KeyframeData) => kf.frame === currentFrame())
   }
 
   const isAnimating = (): boolean => {

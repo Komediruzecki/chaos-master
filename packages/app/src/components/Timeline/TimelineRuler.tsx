@@ -23,7 +23,7 @@ export function TimelineRuler() {
       <div class={ui.markers}>
         {keyframeFramesArr.map((frame) => (
           <div
-            key={String(frame)}
+            data-key={frame}
             class={ui.keyframeMarker}
             style={{ left: `${frame * frameWidth}px` }}
           />
@@ -31,7 +31,7 @@ export function TimelineRuler() {
       </div>
       <div class={ui.scale}>
         {Array.from({ length: config.endFrame + 1 }, (_, i) => i).map((frame) => (
-          <span key={frame} style={{ width: `${frameWidth}px` }}>
+          <span data-keyframe={frame} style={{ width: `${frameWidth}px` }}>
             {frame}
           </span>
         ))}

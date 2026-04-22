@@ -1,6 +1,5 @@
 import { test as base } from '@playwright/test'
-import type { ConsoleMessage } from '@playwright/test'
-import type { Page } from '@playwright/test';
+import type { ConsoleMessage, Page  } from '@playwright/test'
 
 export type ConsoleError = {
   type: string
