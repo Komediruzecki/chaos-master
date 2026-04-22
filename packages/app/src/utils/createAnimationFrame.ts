@@ -1,4 +1,5 @@
-import { createEffect, onCleanup, type Accessor } from 'solid-js'
+import { createEffect, onCleanup } from 'solid-js'
+import type { Accessor } from 'solid-js'
 
 export function createAnimationFrame(
   fn: (frameId: number) => void,

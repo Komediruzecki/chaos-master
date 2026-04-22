@@ -51,6 +51,7 @@ The Keyframe Editor panel lets you create and modify keyframes for any parameter
 ### Removing Keyframes
 
 To remove a keyframe at the current frame:
+
 1. Ensure you're on the frame with the keyframe
 2. Click the "Remove" button
 

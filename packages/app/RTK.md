@@ -36,6 +36,7 @@
      ```
 
 **NEVER** do any of these:
+
 - ❌ Comment out valid code to make linter happy
 - ❌ Delete carefully written logic
 - ❌ Change working code to pass linters
@@ -44,6 +45,7 @@
 ### 2. GitHub CLI Usage
 
 All GitHub operations MUST use `gh` CLI:
+
 ```bash
 gh pr create ...
 gh pr list ...
@@ -57,6 +59,7 @@ gh pr review ...
 Before marking any task complete:
 
 1. **Run all linters**
+
    ```bash
    npm run lint
    npm run typecheck
@@ -64,6 +67,7 @@ Before marking any task complete:
    ```
 
 2. **Run tests**
+
    ```bash
    npm test
    npm run test:ui
@@ -79,6 +83,7 @@ Before marking any task complete:
 ### 4. Push to Remote
 
 **ALWAYS** push your work to remote before finishing:
+
 ```bash
 git add -A
 git commit -m "Commit message"
@@ -88,6 +93,7 @@ git push origin <branch-name>
 ### 5. Always Check Linting/Formatting/TypeChecking
 
 Before pushing:
+
 ```bash
 npm run lint          # ESLint
 npm run typecheck     # TypeScript
@@ -100,6 +106,7 @@ All checks must pass before committing or pushing.
 ## Meta Commands
 
 All other standard git/development commands can use `rtk` prefix for token savings:
+
 - `rtk git status`
 - `rtk git add`
 - `rtk git commit`

@@ -1,8 +1,8 @@
-import { createEffect, createMemo, createSignal,onCleanup } from 'solid-js'
+import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js'
 import { arrayOf, vec2u, vec3f, vec4f } from 'typegpu/data'
 import { clamp } from 'typegpu/std'
 import { useTimeline } from '@/contexts/TimelineContext'
-import { accumulatedPointCount, setAccumulatedPointCount, forceDrawToScreen, setForceDrawToScreen, clearRequested, setClearRequested, setRenderTimings, } from '@/flame/renderStats'
+import { clearRequested, forceDrawToScreen, setClearRequested, setForceDrawToScreen, setRenderTimings, } from '@/flame/renderStats'
 import { createTimestampQuery } from '@/utils/createTimestampQuery'
 import { applyTimelineToFlame } from '@/utils/timeline'
 import { useCamera } from '../lib/CameraContext'
@@ -19,7 +19,7 @@ import type { v4f } from 'typegpu/data'
 import type { Palette } from './colorMap'
 import type { FlameDescriptor } from './schema/flameSchema'
 import type { ExportImageType } from '@/App'
-import type {FlameDescriptor as TimelineFlameDescriptor} from '@/utils/timeline';
+import type { FlameDescriptor as TimelineFlameDescriptor } from '@/utils/timeline'
 
 const { sqrt, floor } = Math
 
@@ -45,10 +45,13 @@ export function Flam3(props: Flam3Props) {
   const { context, canvasSize, canvas, canvasFormat } = useCanvas()
   const timeline = useTimeline()
 
+  // Add enter animation mode button state (to be implemented in App.tsx)
+
   // Create a copy of flameDescriptor that timeline will modify
-  const [animatedFlame, setAnimatedFlame] = createSignal<TimelineFlameDescriptor>(
-    JSON.parse(JSON.stringify(props.flameDescriptor))
-  )
+  const [animatedFlame, setAnimatedFlame] =
+    createSignal<TimelineFlameDescriptor>(
+      JSON.parse(JSON.stringify(props.flameDescriptor)),
+    )
 
   // Apply timeline values to animatedFlame
   createEffect(() => {
@@ -87,11 +90,13 @@ export function Flam3(props: Flam3Props) {
     .$usage('storage')
 
   // Track buffers that need cleanup to avoid destroying while GPU still references them
-  const [buffersToCleanup, setBuffersToCleanup] = createSignal<Set<unknown>>(new Set())
+  const [buffersToCleanup, setBuffersToCleanup] = createSignal<Set<unknown>>(
+    new Set(),
+  )
 
   onCleanup(() => {
     // Mark for cleanup after GPU work completes
-    setBuffersToCleanup(current => new Set([...current, pointRandomSeeds]))
+    setBuffersToCleanup((current) => new Set([...current, pointRandomSeeds]))
   })
 
   const colorGradingUniforms = root
@@ -137,11 +142,11 @@ export function Flam3(props: Flam3Props) {
     const buffers = buffersToCleanup()
     if (buffers.size === 0) return
 
-    device.queue.onSubmittedWorkDone().then(() => {
+    void device.queue.onSubmittedWorkDone().then(() => {
       buffers.forEach((buffer: unknown) => {
         try {
-          (buffer as { destroy: () => void }).destroy()
-        } catch (e) {
+          ;(buffer as { destroy: () => void }).destroy()
+        } catch (_e) {
           // Ignore cleanup errors
         }
       })
@@ -202,8 +207,6 @@ export function Flam3(props: Flam3Props) {
       timeline.advanceFrame()
     }, intervalMs)
 
-    console.log('[Flam3] Animation playback started')
-
     onCleanup(() => {
       clearInterval(intervalId)
     })
@@ -214,32 +217,24 @@ export function Flam3(props: Flam3Props) {
     shouldRenderFinalImage: boolean,
   ) {
     const { ifsMs, adaptiveFilterMs, colorGradingMs } = timings
-    console.log('[Flam3] Estimating iterations, ifsMs:', ifsMs, 'shouldRenderFinalImage:', shouldRenderFinalImage)
     if (ifsMs <= 0) {
-      console.log('[Flam3] ifsMs <= 0, returning 1')
       return 1
     }
     const frameBudgetMs = 14
     const paintTimeMs =
       Number(shouldRenderFinalImage) *
       (colorGradingMs + Number(props.adaptiveFilterEnabled) * adaptiveFilterMs)
-    console.log('[Flam3] paintTimeMs:', paintTimeMs, 'frameBudgetMs:', frameBudgetMs)
     const result = clamp(floor((frameBudgetMs - paintTimeMs) / ifsMs), 1, 100)
-    console.log('[Flam3] Returning iteration count:', result)
     return result
   }
 
   createEffect(() => {
-    console.log('[Flam3] outputTextures effect triggered')
     const o = outputTextures()
-    console.log('[Flam3] outputTextures() returned:', o)
     if (!o) {
-      console.log('[Flam3] No output textures available')
       return undefined
     }
 
     const { textureSize, accumulationBuffer } = o
-    console.log('[Flam3] Creating pipeline with camera:', camera, 'animatedFlame:', animatedFlame(), 'canvasSize:', canvasSize())
 
     const ifsPipeline = createIFSPipeline(
       root,
@@ -254,7 +249,10 @@ export function Flam3(props: Flam3Props) {
     )
 
     createEffect(() => {
-      console.log('[Flam3] Pipeline update effect triggered, animatedFlame:', animatedFlame())
+      console.log(
+        '[Flam3] Pipeline update effect triggered, animatedFlame:',
+        animatedFlame(),
+      )
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ifsPipeline.update(animatedFlame() as any)
       camera.update()
@@ -278,41 +276,40 @@ export function Flam3(props: Flam3Props) {
       void props.palette // track palette changes
     })
 
-    console.log('[Flam3] RAF loop creation starting')
     const [batchIndex, setBatchIndex] = createSignal(0)
     const [accumulatedPointCount, setAccumulatedPointCount] = createSignal(0)
     const [forceDrawToScreen, setForceDrawToScreen] = createSignal(true)
     const [clearRequested, setClearRequested] = createSignal(true)
 
     let frameCount = 0
-    const rafLoop = createAnimationFrame((frameId) => {
-      frameCount++
-      console.log(`[Flam3] RAF loop callback executing, frame: ${frameCount}`)
+    const rafLoop = createAnimationFrame(
+      (frameId) => {
+        frameCount++
 
-      /**
-       * Rendering to screen is expensive because it involves
-       * blurring and color grading. We only want to do this
-       * in the beginning while the image is still forming.
-       * Later on, we can trade off rendering to screen for
-       * convergence speed.
-       */
-      const shouldRenderFinalImage =
-        forceDrawToScreen() ||
-        batchIndex() < OUTPUT_EVERY_FRAME_BATCH_INDEX ||
-        batchIndex() % OUTPUT_INTERVAL_BATCH_INDEX === 0 ||
-        props.onExportImage !== undefined
+        /**
+         * Rendering to screen is expensive because it involves
+         * blurring and color grading. We only want to do this
+         * in the beginning while the image is still forming.
+         * Later on, we can trade off rendering to screen for
+         * convergence speed.
+         */
+        const shouldRenderFinalImage =
+          forceDrawToScreen() ||
+          batchIndex() < OUTPUT_EVERY_FRAME_BATCH_INDEX ||
+          batchIndex() % OUTPUT_INTERVAL_BATCH_INDEX === 0 ||
+          props.onExportImage !== undefined
 
-      const pointCountPerBatch = props.pointCountPerBatch
-      const colorGradingPipeline_ = colorGradingPipeline()
-      if (colorGradingPipeline_ === undefined) {
-        return
+        const pointCountPerBatch = props.pointCountPerBatch
+        const colorGradingPipeline_ = colorGradingPipeline()
+        if (colorGradingPipeline_ === undefined) {
+          return
         }
 
         const encoder = device.createCommandEncoder()
 
         if (clearRequested()) {
+          void encoder.clearBuffer(accumulationBuffer.buffer)
           setClearRequested(false)
-          encoder.clearBuffer(accumulationBuffer.buffer)
         }
 
         const timings = timestampQuery.average()
@@ -343,7 +340,7 @@ export function Flam3(props: Flam3Props) {
           }
 
           setAccumulatedPointCount(
-            accumulatedPointCount() + pointCountPerBatch * iterationCount
+            accumulatedPointCount() + pointCountPerBatch * iterationCount,
           )
         }
 
@@ -382,26 +379,32 @@ export function Flam3(props: Flam3Props) {
         // Mark buffers for cleanup after GPU work completes
         const workDonePromise = device.queue.onSubmittedWorkDone()
 
-        workDonePromise.then(() => {
-          const currentBuffers = outputTextures()?.accumulationBuffer || outputTextures()?.postprocessBuffer
-          if (currentBuffers) {
-            const cleanupSet = buffersToCleanup()
-            if (cleanupSet && !cleanupSet.has(currentBuffers)) {
+        workDonePromise
+          .then(() => {
+            const currentBuffers =
+              outputTextures()?.accumulationBuffer ||
+              outputTextures()?.postprocessBuffer
+            if (currentBuffers) {
+              const cleanupSet = buffersToCleanup()
               setBuffersToCleanup(new Set([...cleanupSet, currentBuffers]))
             }
-          }
-        }).catch(() => {})
+          })
+          .catch(() => {})
 
-        workDonePromise.then(() => {
-          timestampQuery.read(frameId).catch(() => {})
-        }).catch(() => {})
+        workDonePromise
+          .then(() => {
+            timestampQuery.read(frameId).catch(() => {})
+          })
+          .catch(() => {})
 
         props.onExportImage?.(canvas)
 
         setBatchIndex(batchIndex() + 1)
         setForceDrawToScreen(false)
       },
-      continueRendering(accumulatedPointCount()) ? () => props.renderInterval : 0,
+      continueRendering(accumulatedPointCount())
+        ? () => props.renderInterval
+        : 0,
       () => device.queue.onSubmittedWorkDone(),
     )
   })

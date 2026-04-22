@@ -66,7 +66,7 @@ export function TimelinePanel() {
             classList={{ active: isPlaying() }}
             onClick={handlePlayPause}
             title="Play/Pause"
-            data-testid={isPlaying() ? "pause" : "play"}
+            data-testid={isPlaying() ? 'pause' : 'play'}
           >
             {isPlaying() ? '\u23F8' : '\u25B6'}
           </button>
@@ -111,7 +111,9 @@ export function TimelinePanel() {
               value={config().fps}
               min={1}
               max={60}
-              onBlur={(e) => { handleFpsChange(Number(e.currentTarget.value)); }}
+              onBlur={(e) => {
+                handleFpsChange(Number(e.currentTarget.value))
+              }}
               data-testid="fps-input"
             />
           </label>
@@ -122,9 +124,9 @@ export function TimelinePanel() {
               class={ui.numberInput}
               value={config().endFrame}
               min={1}
-              onBlur={(e) =>
-                { handleEndFrameChange(Number(e.currentTarget.value)); }
-              }
+              onBlur={(e) => {
+                handleEndFrameChange(Number(e.currentTarget.value))
+              }}
               data-testid="end-frame-input"
             />
           </label>

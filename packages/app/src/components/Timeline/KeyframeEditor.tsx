@@ -1,8 +1,8 @@
 import { createEffect, createMemo, createSignal } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
-import { addKeyframeToTimeline   } from '@/utils/timeline'
+import { addKeyframeToTimeline } from '@/utils/timeline'
 import ui from './KeyframeEditor.module.css'
-import type {KeyframeData, TimelineTrack} from '@/utils/timeline';
+import type { KeyframeData, TimelineTrack } from '@/utils/timeline'
 
 export function KeyframeEditor() {
   const timeline = useTimeline()
@@ -17,12 +17,15 @@ export function KeyframeEditor() {
   const track = createMemo(() => {
     const path = currentPath()
     const tracksData = tracks()
-    return tracksData[path as keyof typeof tracksData] as TimelineTrack | undefined
+    return tracksData[path as keyof typeof tracksData] as
+      | TimelineTrack
+      | undefined
   })
 
   // Find current value for selected path at current frame
   const currentValue = createMemo(() => {
-    const value = timeline.resolveValueAtPath(currentPath(), currentFrame()) ?? null
+    const value =
+      timeline.resolveValueAtPath(currentPath(), currentFrame()) ?? null
     return value
   })
 
@@ -49,9 +52,8 @@ export function KeyframeEditor() {
   // Parse array value from input string
   const parseArrayValue = (input: string): [number, number, number] | null => {
     try {
-      const parts = input.split(',').map(s => parseFloat(s.trim()))
+      const parts = input.split(',').map((s) => parseFloat(s.trim()))
       if (parts.length === 3) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return [parts[0]!, parts[1]!, parts[2]!]
       }
     } catch {
@@ -86,12 +88,7 @@ export function KeyframeEditor() {
       keyValue = Number(value)
     }
 
-    addKeyframeToTimeline(
-      timeline,
-      currentPath(),
-      currentFrame(),
-      keyValue
-    )
+    addKeyframeToTimeline(timeline, currentPath(), currentFrame(), keyValue)
   }
 
   // Remove keyframe at current frame
@@ -144,14 +141,20 @@ export function KeyframeEditor() {
           type="text"
           value={keyframeValue()}
           onInput={(e) => setKeyframeValue(e.currentTarget.value)}
-          placeholder={isNumberValue() ? '0.25' : isArrayValue() ? '0, 0, 0' : 'colorInitZero'}
+          placeholder={
+            isNumberValue()
+              ? '0.25'
+              : isArrayValue()
+                ? '0, 0, 0'
+                : 'colorInitZero'
+          }
           data-testid="keyframe-value-input"
         />
         {isArrayValue() && (
           <div
             class={ui.colorPreview}
             style={{
-              background: `rgb(${keyframeValue()})`
+              background: `rgb(${keyframeValue()})`,
             }}
             data-testid="color-preview"
           />
@@ -163,13 +166,20 @@ export function KeyframeEditor() {
           class={ui.button}
           classList={{ [ui.active as string]: hasKeyframeAtFrame() }}
           onClick={handleAddKeyframe}
-          data-testid={hasKeyframeAtFrame() ? "update-keyframe" : "add-keyframe"}
+          data-testid={
+            hasKeyframeAtFrame() ? 'update-keyframe' : 'add-keyframe'
+          }
         >
           {hasKeyframeAtFrame() ? 'Update' : 'Add Keyframe'}
         </button>
 
         {hasKeyframeAtFrame() && (
-          <button class={ui.button} classList={{ [ui.danger as string]: true }} onClick={handleRemoveKeyframe} data-testid="remove-keyframe">
+          <button
+            class={ui.button}
+            classList={{ [ui.danger as string]: true }}
+            onClick={handleRemoveKeyframe}
+            data-testid="remove-keyframe"
+          >
             Remove
           </button>
         )}
@@ -178,8 +188,13 @@ export function KeyframeEditor() {
       <div class={ui.info}>
         {hasKeyframeAtFrame() ? (
           <>
-            <span>Keyframe at frame <span data-testid="keyframe-frame">{currentFrame()}</span></span>
-            {isAnimating() && <span class={ui.animating}>Animation active</span>}
+            <span>
+              Keyframe at frame{' '}
+              <span data-testid="keyframe-frame">{currentFrame()}</span>
+            </span>
+            {isAnimating() && (
+              <span class={ui.animating}>Animation active</span>
+            )}
           </>
         ) : (
           <span>No keyframe at current frame</span>

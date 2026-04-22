@@ -27,8 +27,7 @@ import { ViewControls } from './components/ViewControls/ViewControls'
 import { WelcomeScreen } from './components/WelcomeScreen/WelcomeScreen'
 import { ChangeHistoryContextProvider } from './contexts/ChangeHistoryContext'
 import { ThemeContextProvider, useTheme } from './contexts/ThemeContext'
-import { TimelineContextProvider, createTimelineStateSignal } from './contexts/TimelineContext'
-import { addKeyframeToTimeline } from './utils/timeline'
+import { createTimelineStateSignal, TimelineContextProvider, } from './contexts/TimelineContext'
 import { DEFAULT_POINT_COUNT, DEFAULT_QUALITY, DEFAULT_RENDER_INTERVAL_MS, DEFAULT_RESOLUTION, } from './defaults'
 import { colorInitModeToImplFn } from './flame/colorInitMode'
 import { applyColorMapToFlame } from './flame/colorMap'
@@ -50,7 +49,7 @@ import { addFlameDataToPng } from './utils/flameInPng'
 import { compressJsonQueryParam, decodeJsonQueryParam, } from './utils/jsonQueryParam'
 import { saveRecentFlame } from './utils/recentFlames'
 import { sum } from './utils/sum'
-import { createTimelineState } from './utils/timeline'
+import { addKeyframeToTimeline, createTimelineState } from './utils/timeline'
 import { useKeyboardShortcuts } from './utils/useKeyboardShortcuts'
 import { useLoadFlameFromFile } from './utils/useLoadFlameFromFile'
 import { dismissWelcome, hasWelcomeBeenDismissed, } from './utils/welcomeDismissed'
@@ -268,28 +267,34 @@ function App(props: AppProps) {
     const currentFrame = t.currentFrame()
 
     // Add camera keyframes if they don't exist
-    const hasCameraX = tracks.some((track: any) => track.parameterPath === 'camera.x')
-    const hasCameraY = tracks.some((track: any) => track.parameterPath === 'camera.y')
-    const hasCameraZoom = tracks.some((track: any) => track.parameterPath === 'camera.zoom')
+    const hasCameraX = tracks.some(
+      (track: any) => track.parameterPath === 'camera.x',
+    )
+    const hasCameraY = tracks.some(
+      (track: any) => track.parameterPath === 'camera.y',
+    )
+    const hasCameraZoom = tracks.some(
+      (track: any) => track.parameterPath === 'camera.zoom',
+    )
 
     if (!hasCameraX || !hasCameraY || !hasCameraZoom) {
       addKeyframeToTimeline(
         t,
         'camera.x',
         currentFrame,
-        flameDescriptor.renderSettings.camera.position[0]
+        flameDescriptor.renderSettings.camera.position[0],
       )
       addKeyframeToTimeline(
         t,
         'camera.y',
         currentFrame,
-        flameDescriptor.renderSettings.camera.position[1]
+        flameDescriptor.renderSettings.camera.position[1],
       )
       addKeyframeToTimeline(
         t,
         'camera.zoom',
         currentFrame,
-        flameDescriptor.renderSettings.camera.zoom
+        flameDescriptor.renderSettings.camera.zoom,
       )
     }
   })
