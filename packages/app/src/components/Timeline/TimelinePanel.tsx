@@ -42,13 +42,14 @@ export function TimelinePanel() {
   }
 
   return (
-    <div class={ui.panel}>
+    <div class={ui.panel} data-testid="timeline-panel">
       <div class={ui.toolbar}>
         <div class={ui.transportControls}>
           <button
             class={ui.transportBtn}
             onClick={handleGoToStart}
             title="Go to start"
+            data-testid="go-to-start"
           >
             &lArr;
           </button>
@@ -56,6 +57,7 @@ export function TimelinePanel() {
             class={ui.transportBtn}
             onClick={handleStepBackward}
             title="Previous frame"
+            data-testid="previous-frame"
           >
             &laquo;
           </button>
@@ -64,6 +66,7 @@ export function TimelinePanel() {
             classList={{ active: isPlaying() }}
             onClick={handlePlayPause}
             title="Play/Pause"
+            data-testid={isPlaying() ? "pause" : "play"}
           >
             {isPlaying() ? '\u23F8' : '\u25B6'}
           </button>
@@ -71,6 +74,7 @@ export function TimelinePanel() {
             class={ui.transportBtn}
             onClick={handleStepForward}
             title="Next frame"
+            data-testid="next-frame"
           >
             &raquo;
           </button>
@@ -78,6 +82,7 @@ export function TimelinePanel() {
             class={ui.transportBtn}
             onClick={handleGoToEnd}
             title="Go to end"
+            data-testid="go-to-end"
           >
             &rArr;
           </button>
@@ -87,12 +92,14 @@ export function TimelinePanel() {
               type="checkbox"
               checked={config().loop}
               onChange={handleLoopToggle}
+              data-testid="loop-toggle"
             />
           </label>
         </div>
         <div class={ui.frameInfo}>
           <span class={ui.frameDisplay}>
-            Frame {currentFrame()} / {config().endFrame}
+            <span data-testid="current-frame">{currentFrame()}</span> /
+            <span data-testid="end-frame">{config().endFrame}</span>
           </span>
         </div>
         <div class={ui.settingsControls}>
@@ -105,6 +112,7 @@ export function TimelinePanel() {
               min={1}
               max={60}
               onBlur={(e) => { handleFpsChange(Number(e.currentTarget.value)); }}
+              data-testid="fps-input"
             />
           </label>
           <label class={ui.labeledInput}>
@@ -117,6 +125,7 @@ export function TimelinePanel() {
               onBlur={(e) =>
                 { handleEndFrameChange(Number(e.currentTarget.value)); }
               }
+              data-testid="end-frame-input"
             />
           </label>
         </div>

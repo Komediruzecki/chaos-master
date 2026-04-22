@@ -110,7 +110,7 @@ export function KeyframeEditor() {
   }
 
   return (
-    <div class={ui.editor}>
+    <div class={ui.editor} data-testid="keyframe-editor">
       <h4 class={ui.title}>Keyframe Editor</h4>
 
       <div class={ui.parameterSelect}>
@@ -118,6 +118,7 @@ export function KeyframeEditor() {
         <select
           value={currentPath()}
           onChange={(e) => setSelectedPath(e.currentTarget.value)}
+          data-testid="parameter-select"
         >
           <option value="exposure">Exposure</option>
           <option value="skipIters">Skip Iterations</option>
@@ -125,13 +126,14 @@ export function KeyframeEditor() {
           <option value="drawMode">Draw Mode</option>
           <option value="colorInitMode">Color Init Mode</option>
           <option value="pointInitMode">Point Init Mode</option>
+          <option value="backgroundColor">Background Color</option>
         </select>
       </div>
 
       {currentValue() !== null && (
         <div class={ui.currentValue}>
           <span>Current:</span>
-          <span>{currentValue()}</span>
+          <span data-testid="current-value">{currentValue()}</span>
         </div>
       )}
 
@@ -142,13 +144,15 @@ export function KeyframeEditor() {
           value={keyframeValue()}
           onInput={(e) => setKeyframeValue(e.currentTarget.value)}
           placeholder={isNumberValue() ? '0.25' : isArrayValue() ? '0, 0, 0' : 'colorInitZero'}
+          data-testid="keyframe-value-input"
         />
         {isArrayValue() && (
           <div
             class={ui.colorPreview}
             style={{
-              backgroundColor: `rgb(${keyframeValue()})`
+              background: `rgb(${keyframeValue()})`
             }}
+            data-testid="color-preview"
           />
         )}
       </div>
@@ -158,12 +162,13 @@ export function KeyframeEditor() {
           class={ui.button}
           classList={{ [ui.active as string]: hasKeyframeAtFrame() }}
           onClick={handleAddKeyframe}
+          data-testid={hasKeyframeAtFrame() ? "update-keyframe" : "add-keyframe"}
         >
           {hasKeyframeAtFrame() ? 'Update' : 'Add Keyframe'}
         </button>
 
         {hasKeyframeAtFrame() && (
-          <button class={ui.button} classList={{ [ui.danger as string]: true }} onClick={handleRemoveKeyframe}>
+          <button class={ui.button} classList={{ [ui.danger as string]: true }} onClick={handleRemoveKeyframe} data-testid="remove-keyframe">
             Remove
           </button>
         )}
@@ -172,7 +177,7 @@ export function KeyframeEditor() {
       <div class={ui.info}>
         {hasKeyframeAtFrame() ? (
           <>
-            <span>Keyframe at frame {currentFrame()}</span>
+            <span>Keyframe at frame <span data-testid="keyframe-frame">{currentFrame()}</span></span>
             {isAnimating() && <span class={ui.animating}>Animation active</span>}
           </>
         ) : (
