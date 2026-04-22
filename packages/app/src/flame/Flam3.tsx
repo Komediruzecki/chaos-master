@@ -209,13 +209,14 @@ export function Flam3(props: Flam3Props) {
   createEffect(() => {
     console.log('[Flam3] outputTextures effect triggered')
     const o = outputTextures()
+    console.log('[Flam3] outputTextures() returned:', o)
     if (!o) {
       console.log('[Flam3] No output textures available')
       return undefined
     }
 
     const { textureSize, accumulationBuffer } = o
-    console.log('[Flam3] Creating pipeline with camera:', camera, 'animatedFlame:', animatedFlame())
+    console.log('[Flam3] Creating pipeline with camera:', camera, 'animatedFlame:', animatedFlame(), 'canvasSize:', canvasSize())
 
     const ifsPipeline = createIFSPipeline(
       root,
@@ -231,7 +232,7 @@ export function Flam3(props: Flam3Props) {
 
     let batchIndex = 0
     let accumulatedPointCount = 0
-    let forceDrawToScreen = false
+    let forceDrawToScreen = true
     let clearRequested = true
 
     createEffect(() => {
