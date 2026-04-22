@@ -196,14 +196,19 @@ export function Flam3(props: Flam3Props) {
     shouldRenderFinalImage: boolean,
   ) {
     const { ifsMs, adaptiveFilterMs, colorGradingMs } = timings
+    console.log('[Flam3] Estimating iterations, ifsMs:', ifsMs, 'shouldRenderFinalImage:', shouldRenderFinalImage)
     if (ifsMs <= 0) {
+      console.log('[Flam3] ifsMs <= 0, returning 1')
       return 1
     }
     const frameBudgetMs = 14
     const paintTimeMs =
       Number(shouldRenderFinalImage) *
       (colorGradingMs + Number(props.adaptiveFilterEnabled) * adaptiveFilterMs)
-    return clamp(floor((frameBudgetMs - paintTimeMs) / ifsMs), 1, 100)
+    console.log('[Flam3] paintTimeMs:', paintTimeMs, 'frameBudgetMs:', frameBudgetMs)
+    const result = clamp(floor((frameBudgetMs - paintTimeMs) / ifsMs), 1, 100)
+    console.log('[Flam3] Returning iteration count:', result)
+    return result
   }
 
   createEffect(() => {
@@ -364,10 +369,7 @@ export function Flam3(props: Flam3Props) {
         batchIndex += 1
         forceDrawToScreen = false
       },
-      () =>
-        continueRendering(accumulatedPointCount)
-          ? props.renderInterval
-          : Infinity,
+      () => continueRendering(accumulatedPointCount) ? () => props.renderInterval : () => Infinity,
       () => device.queue.onSubmittedWorkDone(),
     )
   })
