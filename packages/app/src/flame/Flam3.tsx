@@ -1,6 +1,7 @@
-import { createEffect, createMemo, onCleanup } from 'solid-js'
+import { createEffect, createMemo, onCleanup, createSignal } from 'solid-js'
 import { arrayOf, vec2u, vec3f, vec4f } from 'typegpu/data'
 import { clamp } from 'typegpu/std'
+import { useTimeline } from '@/contexts/TimelineContext'
 import { accumulatedPointCount, setAccumulatedPointCount, setRenderTimings, } from '@/flame/renderStats'
 import { createTimestampQuery } from '@/utils/createTimestampQuery'
 import { useCamera } from '../lib/CameraContext'
@@ -17,6 +18,7 @@ import type { v4f } from 'typegpu/data'
 import type { Palette } from './colorMap'
 import type { FlameDescriptor } from './schema/flameSchema'
 import type { ExportImageType } from '@/App'
+import { applyToFlame as applyTimelineToFlame, type FlameDescriptor as TimelineFlameDescriptor } from '@/utils/timeline'
 
 const { sqrt, floor } = Math
 
@@ -40,6 +42,19 @@ export function Flam3(props: Flam3Props) {
   const camera = useCamera()
   const { root, device } = useRootContext()
   const { context, canvasSize, canvas, canvasFormat } = useCanvas()
+  const timeline = useTimeline()
+
+  // Create a copy of flameDescriptor that timeline will modify
+  const [animatedFlame, setAnimatedFlame] = createSignal<TimelineFlameDescriptor>(
+    structuredClone(props.flameDescriptor)
+  )
+
+  // Apply timeline values to animatedFlame
+  createEffect(() => {
+    const flame = { ...props.flameDescriptor } as any
+    applyTimelineToFlame(flame)
+    setAnimatedFlame(flame)
+  })
 
   const backgroundColorFinal = () => {
     if (props.flameDescriptor.renderSettings.backgroundColor === undefined) {
@@ -156,6 +171,23 @@ export function Flam3(props: Flam3Props) {
     'colorGradingMs',
   ])
 
+  /**
+   * Timeline animation playback loop.
+   * When isPlaying is true, advances the frame at the configured FPS rate.
+   */
+  createEffect(() => {
+    if (!timeline.isPlaying()) return
+
+    const intervalMs = 1000 / timeline.config().fps
+    const intervalId = window.setInterval(() => {
+      timeline.advanceFrame()
+    }, intervalMs)
+
+    onCleanup(() => {
+      clearInterval(intervalId)
+    })
+  })
+
   function estimateIterationCount(
     timings: NonNullable<ReturnType<typeof timestampQuery.average>>,
     shouldRenderFinalImage: boolean,
@@ -182,13 +214,13 @@ export function Flam3(props: Flam3Props) {
     const ifsPipeline = createIFSPipeline(
       root,
       camera,
-      props.flameDescriptor.renderSettings.skipIters,
+      animatedFlame().renderSettings.skipIters,
       pointRandomSeeds,
-      props.flameDescriptor.transforms,
+      animatedFlame().transforms,
       textureSize,
       accumulationBuffer,
-      props.flameDescriptor.renderSettings.colorInitMode,
-      props.flameDescriptor.renderSettings.pointInitMode,
+      animatedFlame().renderSettings.colorInitMode,
+      animatedFlame().renderSettings.pointInitMode,
     )
 
     let batchIndex = 0
@@ -196,7 +228,7 @@ export function Flam3(props: Flam3Props) {
     let forceDrawToScreen = false
     let clearRequested = true
     createEffect(() => {
-      ifsPipeline.update(props.flameDescriptor)
+      ifsPipeline.update(animatedFlame())
       camera.update()
       batchIndex = 0
       accumulatedPointCount = 0
@@ -206,10 +238,10 @@ export function Flam3(props: Flam3Props) {
 
     createEffect(() => {
       colorGradingUniforms.writePartial({
-        exposure: 2 * Math.exp(props.flameDescriptor.renderSettings.exposure),
+        exposure: 2 * Math.exp(animatedFlame().renderSettings.exposure),
         edgeFadeColor: props.onExportImage ? vec4f(0) : props.edgeFadeColor,
         backgroundColor: vec4f(backgroundColorFinal(), 1),
-        vibrancy: props.flameDescriptor.renderSettings.vibrancy,
+        vibrancy: animatedFlame().renderSettings.vibrancy,
         paletteEntryCount: props.palette?.entries.length ?? 0,
       })
       rafLoop.redraw()

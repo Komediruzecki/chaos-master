@@ -147,6 +147,15 @@ export function Camera2D(props: ParentProps<Camera2DProps>) {
           clipToWorld,
         },
         zoom: () => props.zoom,
+        position: () => props.position,
+        setPosition: (pos: v2f | ((prev: v2f) => v2f)) => {
+          if (typeof pos === 'function') {
+            props.position = pos(props.position)
+          } else {
+            props.position = pos
+          }
+          return props.position
+        },
       }}
     >
       {props.children}

@@ -23,6 +23,8 @@ import { TimelinePanel } from './components/Timeline/TimelinePanel'
 import { createVariationSelector } from './components/VariationSelector/VariationSelector'
 import { ViewControls } from './components/ViewControls/ViewControls'
 import { WelcomeScreen } from './components/WelcomeScreen/WelcomeScreen'
+import { KeyframeEditor } from './components/Timeline/KeyframeEditor'
+import { TimelineRuler } from './components/Timeline/TimelineRuler'
 import { ChangeHistoryContextProvider } from './contexts/ChangeHistoryContext'
 import { ThemeContextProvider, useTheme } from './contexts/ThemeContext'
 import { TimelineContextProvider } from './contexts/TimelineContext'
@@ -725,6 +727,8 @@ function App(props: AppProps) {
               </div>
             </div>
           </Show>
+          <TimelineRuler />
+          <KeyframeEditor />
           <TimelinePanel />
         </Dropzone>
       </TimelineContextProvider>
