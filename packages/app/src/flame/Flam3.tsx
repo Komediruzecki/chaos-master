@@ -228,13 +228,13 @@ export function Flam3(props: Flam3Props) {
     let accumulatedPointCount = 0
     let forceDrawToScreen = false
     let clearRequested = true
+
     createEffect(() => {
       ifsPipeline.update(animatedFlame())
       camera.update()
       batchIndex = 0
       accumulatedPointCount = 0
       clearRequested = true
-      rafLoop.redraw()
     })
 
     createEffect(() => {
@@ -245,7 +245,6 @@ export function Flam3(props: Flam3Props) {
         vibrancy: animatedFlame().renderSettings.vibrancy,
         paletteEntryCount: props.palette?.entries.length ?? 0,
       })
-      rafLoop.redraw()
       forceDrawToScreen = true
     })
 
@@ -253,8 +252,6 @@ export function Flam3(props: Flam3Props) {
       // redraw when these change
       const _ = colorGradingPipeline()
       void props.palette // track palette changes
-      rafLoop.redraw()
-      forceDrawToScreen = true
     })
 
     const rafLoop = createAnimationFrame(
