@@ -34,12 +34,15 @@
 .transport-btn {
   background: none;
   border: 1px solid transparent;
-  border: none;
   border-radius: var(--round);
   padding: 0.25rem 0.5rem;
   cursor: pointer;
   color: var(--neutral-600);
   font-size: 0.9rem;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  line-height: 1;
 }
 
 .transport-btn:hover {
@@ -105,16 +108,19 @@
   width: 3.5rem;
   padding: 0.15rem 0.25rem;
   border: 1px solid var(--neutral-300);
-  border: none;
   border-radius: var(--round);
   background: var(--neutral-200);
   color: var(--neutral-800);
   font-size: 0.75rem;
   text-align: right;
+  appearance: none;
+  -webkit-appearance: none;
+  line-height: normal;
 }
 
 .number-input:focus {
-  outline: 1px solid var(--neutral-400);
+  outline: none;
+  border-color: var(--neutral-400);
 }
 
 [data-theme='dark'] .number-input {

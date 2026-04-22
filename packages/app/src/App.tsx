@@ -49,7 +49,7 @@ import { addFlameDataToPng } from './utils/flameInPng'
 import { compressJsonQueryParam, decodeJsonQueryParam, } from './utils/jsonQueryParam'
 import { saveRecentFlame } from './utils/recentFlames'
 import { sum } from './utils/sum'
-import { addKeyframeToTimeline, createTimelineState } from './utils/timeline'
+import { addKeyframeToTimeline } from './utils/timeline'
 import { useKeyboardShortcuts } from './utils/useKeyboardShortcuts'
 import { useLoadFlameFromFile } from './utils/useLoadFlameFromFile'
 import { dismissWelcome, hasWelcomeBeenDismissed, } from './utils/welcomeDismissed'
@@ -268,13 +268,14 @@ function App(props: AppProps) {
 
     // Add camera keyframes if they don't exist
     const hasCameraX = tracks.some(
-      (track: any) => track.parameterPath === 'camera.x',
+      (track: { parameterPath: string }) => track.parameterPath === 'camera.x',
     )
     const hasCameraY = tracks.some(
-      (track: any) => track.parameterPath === 'camera.y',
+      (track: { parameterPath: string }) => track.parameterPath === 'camera.y',
     )
     const hasCameraZoom = tracks.some(
-      (track: any) => track.parameterPath === 'camera.zoom',
+      (track: { parameterPath: string }) =>
+        track.parameterPath === 'camera.zoom',
     )
 
     if (!hasCameraX || !hasCameraY || !hasCameraZoom) {

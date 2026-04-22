@@ -52,6 +52,7 @@
   color: var(--neutral-600);
   line-height: 20px;
   user-select: none;
+  line-height: normal;
 
   [data-theme='dark'] & {
     color: var(--neutral-400);

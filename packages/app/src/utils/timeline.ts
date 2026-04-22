@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/strict-boolean-expressions */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createSignal } from 'solid-js'
 import { applyEasing, clamp } from './easing'
-import type { FlameDescriptor as FlameSchemaDescriptor } from '@/flame/schema/flameSchema'
-import type { EasingCurve } from '@/flame/schema/timeline'
 import type { DrawMode } from '@/flame/drawMode'
 import type { PointInitMode } from '@/flame/pointInitMode'
+import type { EasingCurve } from '@/flame/schema/timeline'
 
 export interface FlameDescriptor {
   renderSettings: {
@@ -24,14 +23,6 @@ export interface FlameDescriptor {
   metadata: {
     author: string
   }
-}
-
-// Helper for string interpolation (for drawMode, colorInitMode, pointInitMode)
-function lerpString(a: string, b: string, t: number): string {
-  if (a === b) return a
-  const threshold = 0.5
-  if (t <= threshold) return a
-  return b
 }
 
 export type KeyframeData = {
@@ -343,20 +334,10 @@ export function applyTimelineToFlame(
 ): void {
   const frame = timeline.currentFrame()
 
-  console.log('[Timeline] Applying values at frame', frame)
-  console.log('[Timeline] Original flame values:', {
-    camera: flame.renderSettings.camera,
-    exposure: flame.renderSettings.exposure,
-    skipIters: flame.renderSettings.skipIters,
-    vibrancy: flame.renderSettings.vibrancy,
-    drawMode: flame.renderSettings.drawMode,
-  })
-
   // Animate camera position
   const xTrack = timeline.tracks().find((t) => t.parameterPath === 'camera.x')
   if (xTrack) {
     const value = resolveKeyframeValue(xTrack.keyframes, frame)
-    console.log('[Timeline] camera.x value:', value)
     if (
       value !== null &&
       typeof value === 'number' &&
@@ -364,14 +345,11 @@ export function applyTimelineToFlame(
     ) {
       flame.renderSettings.camera.position[0] = value
     }
-  } else {
-    console.log('[Timeline] No camera.x track found')
   }
 
   const yTrack = timeline.tracks().find((t) => t.parameterPath === 'camera.y')
   if (yTrack) {
     const value = resolveKeyframeValue(yTrack.keyframes, frame)
-    console.log('[Timeline] camera.y value:', value)
     if (
       value !== null &&
       typeof value === 'number' &&
@@ -379,8 +357,6 @@ export function applyTimelineToFlame(
     ) {
       flame.renderSettings.camera.position[1] = value
     }
-  } else {
-    console.log('[Timeline] No camera.y track found')
   }
 
   const zoomTrack = timeline
@@ -388,7 +364,6 @@ export function applyTimelineToFlame(
     .find((t) => t.parameterPath === 'camera.zoom')
   if (zoomTrack) {
     const value = resolveKeyframeValue(zoomTrack.keyframes, frame)
-    console.log('[Timeline] camera.zoom value:', value)
     if (
       value !== null &&
       typeof value === 'number' &&
@@ -396,18 +371,7 @@ export function applyTimelineToFlame(
     ) {
       flame.renderSettings.camera.zoom = value
     }
-  } else {
-    console.log('[Timeline] No camera.zoom track found')
   }
-
-  console.log(
-    '[Timeline] Final camera position:',
-    flame.renderSettings.camera?.position,
-  )
-  console.log(
-    '[Timeline] Final camera zoom:',
-    flame.renderSettings.camera?.zoom,
-  )
 
   // Animate flame parameters
   const exposureTrack = timeline
@@ -415,7 +379,6 @@ export function applyTimelineToFlame(
     .find((t) => t.parameterPath === 'exposure')
   if (exposureTrack) {
     const value = resolveKeyframeValue(exposureTrack.keyframes, frame)
-    console.log('[Timeline] exposure value:', value)
     if (value !== null && typeof value === 'number') {
       flame.renderSettings.exposure = value
     }
@@ -426,7 +389,6 @@ export function applyTimelineToFlame(
     .find((t) => t.parameterPath === 'skipIters')
   if (skipItersTrack) {
     const value = resolveKeyframeValue(skipItersTrack.keyframes, frame)
-    console.log('[Timeline] skipIters value:', value)
     if (value !== null && typeof value === 'number') {
       flame.renderSettings.skipIters = value
     }
@@ -437,7 +399,6 @@ export function applyTimelineToFlame(
     .find((t) => t.parameterPath === 'vibrancy')
   if (vibrancyTrack) {
     const value = resolveKeyframeValue(vibrancyTrack.keyframes, frame)
-    console.log('[Timeline] vibrancy value:', value)
     if (value !== null && typeof value === 'number') {
       flame.renderSettings.vibrancy = value
     }
@@ -448,7 +409,6 @@ export function applyTimelineToFlame(
     .find((t) => t.parameterPath === 'drawMode')
   if (drawModeTrack) {
     const value = resolveKeyframeValue(drawModeTrack.keyframes, frame)
-    console.log('[Timeline] drawMode value:', value)
     if (value !== null && typeof value === 'string') {
       flame.renderSettings.drawMode = value as DrawMode
     }
@@ -460,7 +420,6 @@ export function applyTimelineToFlame(
     .find((t) => t.parameterPath === 'colorInitMode')
   if (colorInitModeTrack) {
     const value = resolveKeyframeValue(colorInitModeTrack.keyframes, frame)
-    console.log('[Timeline] colorInitMode value:', value)
     if (value !== null && typeof value === 'string') {
       flame.renderSettings.colorInitMode = value as
         | 'colorInitZero'
@@ -473,10 +432,8 @@ export function applyTimelineToFlame(
     .find((t) => t.parameterPath === 'pointInitMode')
   if (pointInitModeTrack) {
     const value = resolveKeyframeValue(pointInitModeTrack.keyframes, frame)
-    console.log('[Timeline] pointInitMode value:', value)
     if (value !== null && typeof value === 'string') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      flame.renderSettings.pointInitMode = value as any
+      flame.renderSettings.pointInitMode = value as PointInitMode
     }
   }
 
@@ -486,17 +443,8 @@ export function applyTimelineToFlame(
     .find((t) => t.parameterPath === 'backgroundColor')
   if (backgroundColorTrack) {
     const value = resolveKeyframeValue(backgroundColorTrack.keyframes, frame)
-    console.log('[Timeline] backgroundColor value:', value)
-    if (value !== null && Array.isArray(value) && value.length === 3) {
+    if (value !== null && Array.isArray(value)) {
       flame.renderSettings.backgroundColor = value
     }
   }
-
-  console.log('[Timeline] Final flame values:', {
-    camera: flame.renderSettings.camera,
-    exposure: flame.renderSettings.exposure,
-    skipIters: flame.renderSettings.skipIters,
-    vibrancy: flame.renderSettings.vibrancy,
-    drawMode: flame.renderSettings.drawMode,
-  })
 }

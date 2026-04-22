@@ -2,7 +2,7 @@ import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js'
 import { arrayOf, vec2u, vec3f, vec4f } from 'typegpu/data'
 import { clamp } from 'typegpu/std'
 import { useTimeline } from '@/contexts/TimelineContext'
-import { clearRequested, forceDrawToScreen, setClearRequested, setForceDrawToScreen, setRenderTimings, } from '@/flame/renderStats'
+import { setRenderTimings } from '@/flame/renderStats'
 import { createTimestampQuery } from '@/utils/createTimestampQuery'
 import { applyTimelineToFlame } from '@/utils/timeline'
 import { useCamera } from '../lib/CameraContext'
@@ -249,17 +249,12 @@ export function Flam3(props: Flam3Props) {
     )
 
     createEffect(() => {
-      console.log(
-        '[Flam3] Pipeline update effect triggered, animatedFlame:',
-        animatedFlame(),
-      )
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ifsPipeline.update(animatedFlame() as any)
       camera.update()
     })
 
     createEffect(() => {
-      console.log('[Flam3] Uniforms write effect triggered')
       colorGradingUniforms.writePartial({
         exposure: 2 * Math.exp(animatedFlame().renderSettings.exposure),
         edgeFadeColor: props.onExportImage ? vec4f(0) : props.edgeFadeColor,
@@ -270,8 +265,6 @@ export function Flam3(props: Flam3Props) {
     })
 
     createEffect(() => {
-      console.log('[Flam3] Color grading pipeline change detected')
-      // redraw when these change
       const _ = colorGradingPipeline()
       void props.palette // track palette changes
     })
@@ -281,11 +274,8 @@ export function Flam3(props: Flam3Props) {
     const [forceDrawToScreen, setForceDrawToScreen] = createSignal(true)
     const [clearRequested, setClearRequested] = createSignal(true)
 
-    let frameCount = 0
-    const rafLoop = createAnimationFrame(
-      (frameId) => {
-        frameCount++
-
+    createAnimationFrame(
+      (_frameId) => {
         /**
          * Rendering to screen is expensive because it involves
          * blurring and color grading. We only want to do this
@@ -308,7 +298,7 @@ export function Flam3(props: Flam3Props) {
         const encoder = device.createCommandEncoder()
 
         if (clearRequested()) {
-          void encoder.clearBuffer(accumulationBuffer.buffer)
+          encoder.clearBuffer(accumulationBuffer.buffer)
           setClearRequested(false)
         }
 
@@ -377,9 +367,8 @@ export function Flam3(props: Flam3Props) {
         device.queue.submit([encoder.finish()])
 
         // Mark buffers for cleanup after GPU work completes
-        const workDonePromise = device.queue.onSubmittedWorkDone()
-
-        workDonePromise
+        device.queue
+          .onSubmittedWorkDone()
           .then(() => {
             const currentBuffers =
               outputTextures()?.accumulationBuffer ||
@@ -388,11 +377,6 @@ export function Flam3(props: Flam3Props) {
               const cleanupSet = buffersToCleanup()
               setBuffersToCleanup(new Set([...cleanupSet, currentBuffers]))
             }
-          })
-          .catch(() => {})
-
-        workDonePromise
-          .then(() => {
             timestampQuery.read(frameId).catch(() => {})
           })
           .catch(() => {})
@@ -405,7 +389,7 @@ export function Flam3(props: Flam3Props) {
       continueRendering(accumulatedPointCount())
         ? () => props.renderInterval
         : 0,
-      () => device.queue.onSubmittedWorkDone(),
+      () => Promise.resolve(device.queue.onSubmittedWorkDone()),
     )
   })
   return null
