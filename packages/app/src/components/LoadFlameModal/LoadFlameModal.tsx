@@ -14,6 +14,8 @@ import { Button } from '../Button/Button'
 import { DelayedShow } from '../DelayedShow/DelayedShow'
 import { useRequestModal } from '../Modal/ModalContext'
 import { ModalTitleBar } from '../Modal/ModalTitleBar'
+import { TimelineContextProvider, TimelineProvider } from '@/contexts/TimelineContext'
+import { createTimelineState } from '@/utils/timeline'
 import ui from './LoadFlameModal.module.css'
 import type { FlameDescriptor } from '@/flame/schema/flameSchema'
 import type { ChangeHistory } from '@/utils/createStoreHistory'
@@ -28,22 +30,24 @@ function Preview(props: { flameDescriptor: FlameDescriptor }) {
       }}
     >
       <AutoCanvas pixelRatio={1}>
-        <Camera2D
-          position={vec2f(
-            ...props.flameDescriptor.renderSettings.camera.position,
-          )}
-          zoom={props.flameDescriptor.renderSettings.camera.zoom}
-        >
-          <Flam3
-            quality={DEFAULT_QUALITY}
-            pointCountPerBatch={2e4}
-            adaptiveFilterEnabled={true}
-            flameDescriptor={props.flameDescriptor}
-            renderInterval={1}
-            onExportImage={undefined}
-            edgeFadeColor={vec4f(0)}
-          />
-        </Camera2D>
+        <TimelineProvider>
+          <Camera2D
+            position={vec2f(
+              ...props.flameDescriptor.renderSettings.camera.position,
+            )}
+            zoom={props.flameDescriptor.renderSettings.camera.zoom}
+          >
+            <Flam3
+              quality={DEFAULT_QUALITY}
+              pointCountPerBatch={2e4}
+              adaptiveFilterEnabled={true}
+              flameDescriptor={props.flameDescriptor}
+              renderInterval={1}
+              onExportImage={undefined}
+              edgeFadeColor={vec4f(0)}
+            />
+          </Camera2D>
+        </TimelineProvider>
       </AutoCanvas>
     </Root>
   )
