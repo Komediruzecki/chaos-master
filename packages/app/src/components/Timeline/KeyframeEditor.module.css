@@ -84,6 +84,14 @@
     font-weight: 600;
   }
 
+  .colorPreview {
+    width: 100%;
+    height: 24px;
+    border-radius: var(--round);
+    border: 1px solid var(--neutral-300);
+    margin-top: 0.25rem;
+  }
+
   input {
     width: 100%;
     padding: 0.25rem 0.5rem;

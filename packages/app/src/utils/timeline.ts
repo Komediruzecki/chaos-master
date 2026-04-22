@@ -23,7 +23,7 @@ export interface FlameDescriptor extends Omit<FlameSchemaDescriptor, 'pointInitM
 
 export type KeyframeData = {
   frame: number
-  value: number
+  value: number | string | [number, number, number]
   easing?: EasingCurve
 }
 
@@ -112,7 +112,7 @@ export function createTimelineState() {
   function addKeyframe(
     parameterPath: string,
     frame: number,
-    value: number,
+    value: number | string,
     easing?: EasingCurve,
   ) {
     setTracks((prev) => {
@@ -161,22 +161,22 @@ export function createTimelineState() {
   }
 
   function hasKeyframeAtFrame(parameterPath: string, frame: number): boolean {
-    const track = tracks().find((t) => t.parameterPath === parameterPath)
-    return track?.keyframes.some((kf) => kf.frame === frame) ?? false
+    const track = tracks().find((t: any) => t.parameterPath === parameterPath)
+    return track?.keyframes.some((kf: KeyframeData) => kf.frame === frame) ?? false
   }
 
   function resolveValueAtPath(
     parameterPath: string,
     frame: number,
   ): number | null {
-    const track = tracks().find((t) => t.parameterPath === parameterPath)
+    const track = timeline.tracks().find((t) => t.parameterPath === parameterPath)
     if (!track) return null
     return resolveKeyframeValue(track.keyframes, frame)
   }
 
   function advanceFrame() {
     const cfg = config()
-    const next = currentFrame() + 1
+    const next = Number(timeline.currentFrame()) + 1
     if (next > cfg.endFrame) {
       setCurrentFrame(cfg.loop ? cfg.startFrame : cfg.endFrame)
     } else {
@@ -186,7 +186,7 @@ export function createTimelineState() {
 
   function goBackFrame() {
     const cfg = config()
-    const prev = currentFrame() - 1
+    const prev = timeline.currentFrame() - 1
     if (prev < cfg.startFrame) {
       setCurrentFrame(cfg.loop ? cfg.endFrame : cfg.startFrame)
     } else {
@@ -285,17 +285,29 @@ export function createTimelineState() {
   } as const
 }
 
+/**
+   * Exported version of addKeyframe for use in components
+   */
+export function addKeyframeToTimeline(
+  timeline: TimelineState,
+  parameterPath: string,
+  frame: number,
+  value: number | string,
+) {
+  timeline.addKeyframe(parameterPath, frame, value)
+}
+
 export type TimelineState = ReturnType<typeof createTimelineState>
 
 /**
  * Applies timeline values to a flame descriptor for the current frame.
  * This function is the module-level version used by components.
  */
-export function applyTimelineToFlame(flame: FlameDescriptor): void {
-  const frame = currentFrame()
+export function applyTimelineToFlame(timeline: TimelineState, flame: FlameDescriptor): void {
+  const frame = timeline.currentFrame()
 
   // Animate camera position
-  const xTrack = tracks().find((t) => t.parameterPath === 'camera.x')
+  const xTrack = timeline.tracks().find((t: any) => t.parameterPath === 'camera.x') as any
   if (xTrack) {
     const value = resolveKeyframeValue(xTrack.keyframes, frame)
     if (value !== null && flame.renderSettings.camera) {
@@ -303,7 +315,7 @@ export function applyTimelineToFlame(flame: FlameDescriptor): void {
     }
   }
 
-  const yTrack = tracks().find((t) => t.parameterPath === 'camera.y')
+  const yTrack = timeline.tracks().find((t: any) => t.parameterPath === 'camera.y') as any
   if (yTrack) {
     const value = resolveKeyframeValue(yTrack.keyframes, frame)
     if (value !== null && flame.renderSettings.camera) {
@@ -311,7 +323,7 @@ export function applyTimelineToFlame(flame: FlameDescriptor): void {
     }
   }
 
-  const zoomTrack = tracks().find((t: any) => t.parameterPath === 'camera.zoom') as any
+  const zoomTrack = timeline.tracks().find((t: any) => t.parameterPath === 'camera.zoom') as any
   if (zoomTrack) {
     const value = resolveKeyframeValue(zoomTrack.keyframes, frame)
     if (value !== null && flame.renderSettings.camera) {
@@ -320,7 +332,7 @@ export function applyTimelineToFlame(flame: FlameDescriptor): void {
   }
 
   // Animate flame parameters
-  const exposureTrack = tracks().find((t: any) => t.parameterPath === 'exposure') as any
+  const exposureTrack = timeline.tracks().find((t: any) => t.parameterPath === 'exposure') as any
   if (exposureTrack) {
     const value = resolveKeyframeValue(exposureTrack.keyframes, frame)
     if (value !== null) {
@@ -328,7 +340,7 @@ export function applyTimelineToFlame(flame: FlameDescriptor): void {
     }
   }
 
-  const skipItersTrack = tracks().find((t: any) => t.parameterPath === 'skipIters') as any
+  const skipItersTrack = timeline.tracks().find((t: any) => t.parameterPath === 'skipIters') as any
   if (skipItersTrack) {
     const value = resolveKeyframeValue(skipItersTrack.keyframes, frame)
     if (value !== null) {
@@ -336,7 +348,7 @@ export function applyTimelineToFlame(flame: FlameDescriptor): void {
     }
   }
 
-  const vibrancyTrack = tracks().find((t: any) => t.parameterPath === 'vibrancy') as any
+  const vibrancyTrack = timeline.tracks().find((t: any) => t.parameterPath === 'vibrancy') as any
   if (vibrancyTrack) {
     const value = resolveKeyframeValue(vibrancyTrack.keyframes, frame)
     if (value !== null) {
@@ -344,11 +356,37 @@ export function applyTimelineToFlame(flame: FlameDescriptor): void {
     }
   }
 
-  const drawModeTrack = tracks().find((t: any) => t.parameterPath === 'drawMode') as any
+  const drawModeTrack = timeline.tracks().find((t: any) => t.parameterPath === 'drawMode') as any
   if (drawModeTrack) {
     const value = resolveKeyframeValue(drawModeTrack.keyframes, frame)
     if (value !== null) {
       flame.renderSettings.drawMode = (value > 0.5 ? 'paint' : 'light')
+    }
+  }
+
+  // Animate string parameters (colorInitMode, pointInitMode)
+  const colorInitModeTrack = timeline.tracks().find((t: any) => t.parameterPath === 'colorInitMode') as any
+  if (colorInitModeTrack) {
+    const value = resolveKeyframeValue(colorInitModeTrack.keyframes, frame)
+    if (value !== null) {
+      flame.renderSettings.colorInitMode = value as unknown as 'colorInitZero' | 'colorInitPosition'
+    }
+  }
+
+  const pointInitModeTrack = timeline.tracks().find((t: any) => t.parameterPath === 'pointInitMode') as any
+  if (pointInitModeTrack) {
+    const value = resolveKeyframeValue(pointInitModeTrack.keyframes, frame)
+    if (value !== null) {
+      flame.renderSettings.pointInitMode = value as unknown as 'pointInitUnitDisk' | 'pointInitGaussianDisk' | 'pointInitUnitSquare' | 'pointInitModeGaussianSquare' | 'pointInitModeGaussianCircle' | 'pointInitModeUniform' | 'pointInitModeBiUnitDisk'
+    }
+  }
+
+  // Animate backgroundColor (array of 3 numbers)
+  const backgroundColorTrack = timeline.tracks().find((t: any) => t.parameterPath === 'backgroundColor') as any
+  if (backgroundColorTrack) {
+    const value = resolveKeyframeValue(backgroundColorTrack.keyframes, frame)
+    if (value !== null && typeof value === 'object' && Array.isArray(value) && value.length === 3) {
+      flame.renderSettings.backgroundColor = value as unknown as [number, number, number]
     }
   }
 }

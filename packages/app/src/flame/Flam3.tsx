@@ -4,7 +4,7 @@ import { clamp } from 'typegpu/std'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { accumulatedPointCount, setAccumulatedPointCount, setRenderTimings, } from '@/flame/renderStats'
 import { createTimestampQuery } from '@/utils/createTimestampQuery'
-import { applyToFlame as applyTimelineToFlame  } from '@/utils/timeline'
+import { applyTimelineToFlame } from '@/utils/timeline'
 import { useCamera } from '../lib/CameraContext'
 import { useCanvas } from '../lib/CanvasContext'
 import { useRootContext } from '../lib/RootContext'
@@ -53,7 +53,7 @@ export function Flam3(props: Flam3Props) {
   // Apply timeline values to animatedFlame
   createEffect(() => {
     const flame = { ...props.flameDescriptor } as FlameDescriptor
-    applyTimelineToFlame(flame)
+    applyTimelineToFlame(timeline, flame)
     setAnimatedFlame(flame)
   })
 

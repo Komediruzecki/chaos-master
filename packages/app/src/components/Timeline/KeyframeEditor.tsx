@@ -1,7 +1,8 @@
 import { createEffect, createMemo, createSignal } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
+import { addKeyframeToTimeline   } from '@/utils/timeline'
 import ui from './KeyframeEditor.module.css'
-import type { KeyframeData, TimelineTrack } from '@/utils/timeline'
+import type {KeyframeData, TimelineTrack} from '@/utils/timeline';
 
 export function KeyframeEditor() {
   const timeline = useTimeline()
@@ -9,7 +10,8 @@ export function KeyframeEditor() {
   const tracks = timeline.tracks
 
   const [selectedPath, setSelectedPath] = createSignal('exposure')
-  const [keyframeValue, setKeyframeValue] = createSignal(0.25)
+  const [keyframeValue, setKeyframeValue] = createSignal('0.25')
+  const [_isArrayValue, _setIsArrayValue] = createSignal(false)
 
   const currentPath = () => selectedPath()
   const track = createMemo(() => {
@@ -24,21 +26,70 @@ export function KeyframeEditor() {
     return value
   })
 
+  // Check if current path expects a number or string
+  const isNumberValue = (): boolean => {
+    const path = currentPath()
+    return ['exposure', 'skipIters', 'vibrancy'].includes(path)
+  }
+
+  // Check if current path expects an array value (like backgroundColor)
+  const isArrayValue = (): boolean => {
+    const path = currentPath()
+    return path === 'backgroundColor'
+  }
+
+  // Format array value for display/input
+  const formatArrayValue = (value: unknown): string => {
+    if (Array.isArray(value) && value.length === 3) {
+      return value.join(', ')
+    }
+    return String(value)
+  }
+
+  // Parse array value from input string
+  const parseArrayValue = (input: string): [number, number, number] | null => {
+    try {
+      const parts = input.split(',').map(s => parseFloat(s.trim()))
+      if (parts.length === 3 && parts.every(n => !isNaN(n))) {
+        return [parts[0], parts[1], parts[2]]
+      }
+    } catch (e) {
+      // Ignore parse errors
+    }
+    return null
+  }
+
   // Update value when frame changes
   createEffect(() => {
     const value = currentValue()
     if (value !== null) {
-      setKeyframeValue(value)
+      if (isArrayValue()) {
+        setKeyframeValue(formatArrayValue(value))
+      } else {
+        setKeyframeValue(String(value))
+      }
     }
   })
 
   // Add keyframe at current frame
   const handleAddKeyframe = () => {
-    const track = timeline.tracks().find(t => t.parameterPath === currentPath())
     const value = keyframeValue()
-    if (track === undefined) return
+    if (track() === undefined) return
 
-    timeline.addKeyframe(currentPath(), currentFrame(), value)
+    let keyValue: number | string | [number, number, number] = value
+
+    if (isArrayValue()) {
+      keyValue = parseArrayValue(value) || [0, 0, 0]
+    } else if (isNumberValue()) {
+      keyValue = Number(value)
+    }
+
+    addKeyframeToTimeline(
+      timeline,
+      currentPath(),
+      currentFrame(),
+      keyValue
+    )
   }
 
   // Remove keyframe at current frame
@@ -71,6 +122,8 @@ export function KeyframeEditor() {
           <option value="skipIters">Skip Iterations</option>
           <option value="vibrancy">Vibrancy</option>
           <option value="drawMode">Draw Mode</option>
+          <option value="colorInitMode">Color Init Mode</option>
+          <option value="pointInitMode">Point Init Mode</option>
         </select>
       </div>
 
@@ -84,10 +137,19 @@ export function KeyframeEditor() {
       <div class={ui.keyframeValue}>
         <label>Value at Frame {currentFrame()}</label>
         <input
-          type="number"
+          type="text"
           value={keyframeValue()}
-          onInput={(e) => setKeyframeValue(Number(e.currentTarget.value))}
+          onInput={(e) => setKeyframeValue(e.currentTarget.value)}
+          placeholder={isNumberValue() ? '0.25' : isArrayValue() ? '0, 0, 0' : 'colorInitZero'}
         />
+        {isArrayValue() && (
+          <div
+            class={ui.colorPreview}
+            style={{
+              backgroundColor: `rgb(${keyframeValue()})`
+            }}
+          />
+        )}
       </div>
 
       <div class={ui.actions}>
