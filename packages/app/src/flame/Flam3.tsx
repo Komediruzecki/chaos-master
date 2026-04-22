@@ -268,6 +268,7 @@ export function Flam3(props: Flam3Props) {
       void props.palette // track palette changes
     })
 
+    console.log('[Flam3] RAF loop creation starting')
     const rafLoop = createAnimationFrame(
       (frameId) => {
         /**
