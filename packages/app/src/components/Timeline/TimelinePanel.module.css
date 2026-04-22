@@ -1,0 +1,123 @@
+.panel {
+  grid-area: timeline;
+  background-color: var(--neutral-100);
+  border-top: 1px solid var(--neutral-200);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 60px;
+
+  [data-theme='dark'] & {
+    background-color: var(--neutral-950);
+    border-top-color: var(--neutral-800);
+  }
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--neutral-200);
+
+  [data-theme='dark'] & {
+    border-bottom-color: var(--neutral-800);
+  }
+}
+
+.transport-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.transport-btn {
+  background: none;
+  border: 1px solid transparent;
+  border: none;
+  border-radius: var(--round);
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  color: var(--neutral-600);
+  font-size: 0.9rem;
+}
+
+.transport-btn:hover {
+  color: var(--neutral-900);
+  background-color: var(--neutral-200);
+}
+
+.transport-btn.active {
+  color: var(--neutral-900);
+  background-color: var(--neutral-300);
+}
+
+[data-theme='dark'] .transport-btn {
+  color: var(--neutral-400);
+}
+
+[data-theme='dark'] .transport-btn:hover {
+  color: var(--neutral-100);
+  background-color: var(--neutral-800);
+}
+
+[data-theme='dark'] .transport-btn.active {
+  color: var(--neutral-100);
+  background-color: var(--neutral-700);
+}
+
+.frame-info {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.frame-display {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: var(--neutral-700);
+}
+
+[data-theme='dark'] .frame-display {
+  color: var(--neutral-300);
+}
+
+.settings-controls {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.labeled-input {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--neutral-600);
+}
+
+.labeled-input span {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.number-input {
+  width: 3.5rem;
+  padding: 0.15rem 0.25rem;
+  border: 1px solid var(--neutral-300);
+  border: none;
+  border-radius: var(--round);
+  background: var(--neutral-200);
+  color: var(--neutral-800);
+  font-size: 0.75rem;
+  text-align: right;
+}
+
+.number-input:focus {
+  outline: 1px solid var(--neutral-400);
+}
+
+[data-theme='dark'] .number-input {
+  background: var(--neutral-800);
+  color: var(--neutral-300);
+}
