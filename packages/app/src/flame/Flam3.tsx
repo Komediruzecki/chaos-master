@@ -47,7 +47,7 @@ export function Flam3(props: Flam3Props) {
 
   // Create a copy of flameDescriptor that timeline will modify
   const [animatedFlame, setAnimatedFlame] = createSignal<TimelineFlameDescriptor>(
-    structuredClone(props.flameDescriptor)
+    JSON.parse(JSON.stringify(props.flameDescriptor))
   )
 
   // Apply timeline values to animatedFlame

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unnecessary-type-assertion */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/strict-boolean-expressions */
 import { createSignal } from 'solid-js'
 import { applyEasing, clamp, lerp } from './easing'
 import type { FlameDescriptor as FlameSchemaDescriptor } from '@/flame/schema/flameSchema'
@@ -286,8 +286,8 @@ export function createTimelineState() {
 }
 
 /**
-   * Exported version of addKeyframe for use in components
-   */
+ * Exported version of addKeyframe for use in components
+ */
 export function addKeyframeToTimeline(
   timeline: TimelineState,
   parameterPath: string,
