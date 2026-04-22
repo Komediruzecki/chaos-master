@@ -323,6 +323,8 @@ export function applyTimelineToFlame(timeline: TimelineState, flame: FlameDescri
     if (value !== null && flame.renderSettings.camera) {
       flame.renderSettings.camera.position[0] = value
     }
+  } else {
+    console.log('[Timeline] No camera.x track found')
   }
 
   const yTrack = timeline.tracks().find((t: any) => t.parameterPath === 'camera.y') as any
@@ -332,6 +334,8 @@ export function applyTimelineToFlame(timeline: TimelineState, flame: FlameDescri
     if (value !== null && flame.renderSettings.camera) {
       flame.renderSettings.camera.position[1] = value
     }
+  } else {
+    console.log('[Timeline] No camera.y track found')
   }
 
   const zoomTrack = timeline.tracks().find((t: any) => t.parameterPath === 'camera.zoom') as any
@@ -341,7 +345,12 @@ export function applyTimelineToFlame(timeline: TimelineState, flame: FlameDescri
     if (value !== null && flame.renderSettings.camera) {
       flame.renderSettings.camera.zoom = value
     }
+  } else {
+    console.log('[Timeline] No camera.zoom track found')
   }
+
+  console.log('[Timeline] Final camera position:', flame.renderSettings.camera?.position)
+  console.log('[Timeline] Final camera zoom:', flame.renderSettings.camera?.zoom)
 
   // Animate flame parameters
   const exposureTrack = timeline.tracks().find((t: any) => t.parameterPath === 'exposure') as any
