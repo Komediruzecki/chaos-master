@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/strict-boolean-expressions */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unnecessary-type-assertion */
 import { createSignal } from 'solid-js'
 import { applyEasing, clamp, lerp } from './easing'
 import type { FlameDescriptor as FlameSchemaDescriptor } from '@/flame/schema/flameSchema'
@@ -50,7 +50,7 @@ function defaultConfig(): TimelineConfig {
 export function resolveKeyframeValue(
   keyframes: KeyframeData[],
   frame: number,
-): number | null {
+): number | string | [number, number, number] | null {
   if (keyframes.length === 0) return null
 
   const sorted = [...keyframes].sort((a, b) => a.frame - b.frame)
@@ -112,7 +112,7 @@ export function createTimelineState() {
   function addKeyframe(
     parameterPath: string,
     frame: number,
-    value: number | string,
+    value: number | string | [number, number, number],
     easing?: EasingCurve,
   ) {
     setTracks((prev) => {
@@ -168,15 +168,15 @@ export function createTimelineState() {
   function resolveValueAtPath(
     parameterPath: string,
     frame: number,
-  ): number | null {
-    const track = timeline.tracks().find((t) => t.parameterPath === parameterPath)
+  ): number | string | [number, number, number] | null {
+    const track = tracks().find((t: any) => t.parameterPath === parameterPath)
     if (!track) return null
     return resolveKeyframeValue(track.keyframes, frame)
   }
 
   function advanceFrame() {
     const cfg = config()
-    const next = Number(timeline.currentFrame()) + 1
+    const next = currentFrame() + 1
     if (next > cfg.endFrame) {
       setCurrentFrame(cfg.loop ? cfg.startFrame : cfg.endFrame)
     } else {
@@ -186,7 +186,7 @@ export function createTimelineState() {
 
   function goBackFrame() {
     const cfg = config()
-    const prev = timeline.currentFrame() - 1
+    const prev = currentFrame() - 1
     if (prev < cfg.startFrame) {
       setCurrentFrame(cfg.loop ? cfg.endFrame : cfg.startFrame)
     } else {
@@ -385,7 +385,8 @@ export function applyTimelineToFlame(timeline: TimelineState, flame: FlameDescri
   const backgroundColorTrack = timeline.tracks().find((t: any) => t.parameterPath === 'backgroundColor') as any
   if (backgroundColorTrack) {
     const value = resolveKeyframeValue(backgroundColorTrack.keyframes, frame)
-    if (value !== null && typeof value === 'object' && Array.isArray(value) && value.length === 3) {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    if (value !== null && typeof value === 'object' && Array.isArray(value)) {
       flame.renderSettings.backgroundColor = value as unknown as [number, number, number]
     }
   }

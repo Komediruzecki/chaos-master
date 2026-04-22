@@ -50,10 +50,10 @@ export function KeyframeEditor() {
   const parseArrayValue = (input: string): [number, number, number] | null => {
     try {
       const parts = input.split(',').map(s => parseFloat(s.trim()))
-      if (parts.length === 3 && parts.every(n => !isNaN(n))) {
+      if (parts.length === 3 && parts.every((n): n is number => !isNaN(n))) {
         return [parts[0], parts[1], parts[2]]
       }
-    } catch (e) {
+    } catch {
       // Ignore parse errors
     }
     return null
@@ -76,10 +76,11 @@ export function KeyframeEditor() {
     const value = keyframeValue()
     if (track() === undefined) return
 
-    let keyValue: number | string | [number, number, number] = value
+    let keyValue: string | number = value
 
     if (isArrayValue()) {
-      keyValue = parseArrayValue(value) || [0, 0, 0]
+      const parsed = parseArrayValue(value)
+      keyValue = parsed ? `[${parsed.join(', ')}]` : '[0, 0, 0]'
     } else if (isNumberValue()) {
       keyValue = Number(value)
     }
