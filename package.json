@@ -8,8 +8,9 @@
     "fmt": "prettier packages --check",
     "lint": "eslint",
     "typecheck": "npx tsc --noEmit --project packages/app/tsconfig.json",
-    "test": "playwright test",
-    "test:ui": "playwright test --ui",
+    "test": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:watch": "vitest",
     "ci": "pnpm lint && pnpm typecheck && pnpm test",
     "lines": "cloc packages --exclude-dir=node_modules,dist --by-file-by-lang --not-match-f='(.*[.]d[.]ts|.*[.]stories[.].*|.*[.]test[.].*|.*[.]json)'"
   },
