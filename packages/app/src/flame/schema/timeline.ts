@@ -5,7 +5,8 @@ export const EasingCurve = v.picklist([
   'easeIn',
   'easeOut',
   'easeInOut',
-  'constant',
+  'bounce',
+  'elastic',
 ])
 export type EasingCurve = v.InferOutput<typeof EasingCurve>
 

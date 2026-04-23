@@ -15,7 +15,7 @@ const cameraDefault: { zoom: number; position: [number, number] } = {
   zoom: 1,
   position: [0, 0],
 }
-const edgeFadeColorDefault: [number, number, number, number] = [
+const _edgeFadeColorDefault: [number, number, number, number] = [
   0, 0, 0, 0.8,
 ]
 const MAX_SKIP_ITERS_VALUE = 30

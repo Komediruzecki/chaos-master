@@ -1,7 +1,12 @@
 import { createEffect, createMemo, createSignal } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
+import {
+  Cross,
+  Redo,
+} from '@/icons'
 import { addKeyframeToTimeline } from '@/utils/timeline'
 import ui from './KeyframeEditor.module.css'
+import type { EasingCurve } from '@/flame/schema/timeline'
 import type { KeyframeData, TimelineTrack } from '@/utils/timeline'
 
 export function KeyframeEditor() {
@@ -11,7 +16,7 @@ export function KeyframeEditor() {
 
   const [selectedPath, setSelectedPath] = createSignal('exposure')
   const [keyframeValue, setKeyframeValue] = createSignal('0.25')
-  const [_isArrayValue, _setIsArrayValue] = createSignal(false)
+  const [interpolationMode, setInterpolationMode] = createSignal<EasingCurve>('linear')
 
   const currentPath = () => selectedPath()
   const track = createMemo(() => {
@@ -94,12 +99,45 @@ export function KeyframeEditor() {
       keyValue = Number(value)
     }
 
-    addKeyframeToTimeline(timeline, currentPath(), currentFrame(), keyValue)
+    addKeyframeToTimeline(timeline, currentPath(), currentFrame(), keyValue, interpolationMode())
   }
 
   // Remove keyframe at current frame
   const handleRemoveKeyframe = () => {
     timeline.removeKeyframe(currentPath(), currentFrame())
+  }
+
+  // Duplicate keyframe to next frame
+  const handleDuplicateKeyframe = () => {
+    const currentKf = track()?.keyframes.find((kf: KeyframeData) => kf.frame === currentFrame())
+    if (!currentKf || currentKf.value === null || typeof currentKf.value === 'boolean') return
+
+    const nextFrame = currentFrame() + 1
+    let keyValue: string | number | [number, number, number] | [number, number, number, number] = currentKf.value
+
+    if (isArrayValue()) {
+      const parsed = parseArrayValue(String(currentKf.value))
+      keyValue = parsed ? `[${parsed.join(', ')}]` : '[0, 0, 0]'
+    } else if (isNumberValue()) {
+      keyValue = Number(currentKf.value)
+    }
+
+    addKeyframeToTimeline(timeline, currentPath(), nextFrame, keyValue, currentKf.easing)
+  }
+
+  // Freeze keyframe (copy current value to next frame)
+  const handleFreezeKeyframe = () => {
+    const nextFrame = currentFrame() + 1
+    let keyValue: string | number | [number, number, number] | [number, number, number, number] = keyframeValue()
+
+    if (isArrayValue()) {
+      const parsed = parseArrayValue(keyframeValue())
+      keyValue = parsed ? `[${parsed.join(', ')}]` : '[0, 0, 0]'
+    } else if (isNumberValue()) {
+      keyValue = Number(keyframeValue())
+    }
+
+    addKeyframeToTimeline(timeline, currentPath(), nextFrame, keyValue, interpolationMode())
   }
 
   const hasKeyframeAtFrame = (): boolean => {
@@ -176,6 +214,45 @@ export function KeyframeEditor() {
           />
         )}
       </div>
+
+      {hasKeyframeAtFrame() && (
+        <div class={ui.keyframeOptions}>
+          <div class={ui.optionGroup}>
+            <label>Interpolation</label>
+            <select
+              value={interpolationMode()}
+              onChange={(e) => setInterpolationMode(e.currentTarget.value as EasingCurve)}
+              data-testid="interpolation-select"
+            >
+              <option value="linear">Linear</option>
+              <option value="easeIn">Ease In</option>
+              <option value="easeOut">Ease Out</option>
+              <option value="easeInOut">Ease In Out</option>
+              <option value="bounce">Bounce</option>
+              <option value="elastic">Elastic</option>
+            </select>
+          </div>
+
+          <div class={ui.keyframeActions}>
+            <button
+              class={ui.actionButton}
+              onClick={handleDuplicateKeyframe}
+              data-testid="duplicate-keyframe"
+              title="Duplicate keyframe"
+            >
+              <Redo />
+            </button>
+            <button
+              class={ui.actionButton}
+              onClick={handleFreezeKeyframe}
+              data-testid="freeze-keyframe"
+              title="Freeze keyframe (hold current value)"
+            >
+              <Cross />
+            </button>
+          </div>
+        </div>
+      )}
 
       <div class={ui.actions}>
         <button
