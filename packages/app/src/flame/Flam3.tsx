@@ -58,7 +58,9 @@ export function Flam3(props: Flam3Props) {
   // Apply timeline values to animatedFlame
   createEffect(() => {
     const flame = { ...props.flameDescriptor } as FlameDescriptor
-    applyTimelineToFlame(timeline, flame)
+    if (timeline) {
+      applyTimelineToFlame(timeline, flame)
+    }
     setAnimatedFlame(flame)
   })
 
@@ -228,7 +230,7 @@ export function Flam3(props: Flam3Props) {
    * When isPlaying is true, advances the frame at the configured FPS rate.
    */
   createEffect(() => {
-    if (!timeline.isPlaying()) return
+    if (!timeline || !timeline.isPlaying()) return
 
     const intervalMs = 1000 / timeline.config().fps
     const intervalId = window.setInterval(() => {

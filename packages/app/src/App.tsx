@@ -361,6 +361,7 @@ function App(props: AppProps) {
           />
 
           <Button
+            class={ui.timelineToggle}
             onClick={() => {
               document.startViewTransition(() => {
                 setShowTimeline(!showTimeline())

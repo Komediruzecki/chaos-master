@@ -340,3 +340,9 @@
 .timeline-section {
   margin-bottom: var(--space-2);
 }
+
+.timelineToggle {
+  height: 2.5rem;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+}
