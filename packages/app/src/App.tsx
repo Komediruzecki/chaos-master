@@ -28,7 +28,7 @@ import { ViewControls } from './components/ViewControls/ViewControls'
 import { WelcomeScreen } from './components/WelcomeScreen/WelcomeScreen'
 import { ChangeHistoryContextProvider } from './contexts/ChangeHistoryContext'
 import { ThemeContextProvider, useTheme } from './contexts/ThemeContext'
-import { createTimelineStateSignal, TimelineContextProvider, } from './contexts/TimelineContext'
+import { TimelineContextProvider } from './contexts/TimelineContext'
 import { DEFAULT_POINT_COUNT, DEFAULT_QUALITY, DEFAULT_RENDER_INTERVAL_MS, DEFAULT_RESOLUTION, } from './defaults'
 import { colorInitModeToImplFn } from './flame/colorInitMode'
 import { applyColorMapToFlame } from './flame/colorMap'
@@ -279,7 +279,11 @@ function App(props: AppProps) {
         track.parameterPath === 'camera.zoom',
     )
 
-    if (!hasCameraX || !hasCameraY || !hasCameraZoom) {
+    if (
+      !(hasCameraX as boolean) ||
+      !(hasCameraY as boolean) ||
+      !(hasCameraZoom as boolean)
+    ) {
       addKeyframeToTimeline(
         t,
         'camera.x',
@@ -303,7 +307,7 @@ function App(props: AppProps) {
 
   return (
     <ChangeHistoryContextProvider value={history}>
-      <TimelineContextProvider value={timeline()}>
+      <TimelineContextProvider value={timeline}>
         <Dropzone class={ui.layout} onDrop={onDrop}>
           <>
             <div
