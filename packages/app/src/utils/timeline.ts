@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createSignal } from 'solid-js'
 import { applyEasing, clamp } from './easing'
 import type { DrawMode } from '@/flame/drawMode'
@@ -17,17 +16,37 @@ export interface FlameDescriptor {
     camera?: {
       zoom: number
       position: [number, number]
+      rotation?: number
+    }
+    palettePhase?: number
+    paletteSpeed?: number
+    variationParams?: {
+      waveX?: number
+      waveY?: number
+      intensity?: number
+      periodicity?: number
+      octaves?: number
+      oscillationSpeed?: number
+      rippleRadius?: number
+      distortion?: number
     }
   }
   transforms: Record<string, unknown>
   metadata: {
     author: string
   }
+  edgeFadeColor?: [number, number, number, number]
 }
 
 export type KeyframeData = {
   frame: number
-  value: number | string | [number, number, number]
+  value:
+    | number
+    | string
+    | [number, number, number]
+    | [number, number, number, number]
+    | boolean
+    | null
   easing?: EasingCurve
 }
 
@@ -38,13 +57,14 @@ export type TimelineTrack = {
 
 export type TimelineConfig = {
   fps: number
+  timeScale: number
   startFrame: number
   endFrame: number
   loop: boolean
 }
 
 function defaultConfig(): TimelineConfig {
-  return { fps: 30, startFrame: 0, endFrame: 90, loop: true }
+  return { fps: 30, timeScale: 1, startFrame: 0, endFrame: 90, loop: true }
 }
 
 /**
@@ -54,7 +74,7 @@ function defaultConfig(): TimelineConfig {
 export function resolveKeyframeValue(
   keyframes: KeyframeData[],
   frame: number,
-): number | string | [number, number, number] | null {
+): number | string | boolean | [number, number, number] | null | [number, number, number, number] {
   if (keyframes.length === 0) return null
 
   const sorted = [...keyframes].sort((a, b) => a.frame - b.frame)
@@ -91,8 +111,11 @@ export function resolveKeyframeValue(
     return prev.value + (next.value - prev.value) * t
   }
 
-  // For string interpolation (drawMode, colorInitMode, pointInitMode)
-  return prev.value
+  // For string interpolation (drawMode, colorInitMode, pointInitMode) or boolean
+  if (typeof prev.value === 'string' || typeof prev.value === 'boolean') {
+    return prev.value
+  }
+  return next.value
 }
 
 /**
@@ -119,6 +142,7 @@ export function createTimelineState() {
     equals: false,
   })
   const [isPlaying, setIsPlaying] = createSignal(false)
+  let animationFrameId: number | null = null
 
   function addKeyframe(
     parameterPath: string,
@@ -172,7 +196,9 @@ export function createTimelineState() {
   }
 
   function hasKeyframeAtFrame(parameterPath: string, frame: number): boolean {
-    const track = tracks().find((t: any) => t.parameterPath === parameterPath)
+    const track = tracks().find(
+      (t): t is TimelineTrack => t.parameterPath === parameterPath,
+    )
     return (
       track?.keyframes.some((kf: KeyframeData) => kf.frame === frame) ?? false
     )
@@ -181,8 +207,10 @@ export function createTimelineState() {
   function resolveValueAtPath(
     parameterPath: string,
     frame: number,
-  ): number | string | [number, number, number] | null {
-    const track = tracks().find((t: any) => t.parameterPath === parameterPath)
+  ): number | string | boolean | [number, number, number] | [number, number, number, number] | null {
+    const track = tracks().find(
+      (t): t is TimelineTrack => t.parameterPath === parameterPath,
+    )
     if (!track) return null
     return resolveKeyframeValue(track.keyframes, frame)
   }
@@ -209,6 +237,42 @@ export function createTimelineState() {
 
   function goToFrame(frame: number) {
     setCurrentFrame(clamp(frame, config().startFrame, config().endFrame))
+  }
+
+  function play() {
+    if (isPlaying()) return
+
+    setIsPlaying(true)
+    const frameLoop = () => {
+      if (!isPlaying()) {
+        animationFrameId = null
+        return
+      }
+
+      const cfg = config()
+      for (let i = 0; i < cfg.timeScale; i++) {
+        advanceFrame()
+      }
+      animationFrameId = requestAnimationFrame(frameLoop)
+    }
+
+    animationFrameId = requestAnimationFrame(frameLoop)
+  }
+
+  function pause() {
+    setIsPlaying(false)
+    if (animationFrameId !== null) {
+      cancelAnimationFrame(animationFrameId)
+      animationFrameId = null
+    }
+  }
+
+  function togglePlay() {
+    if (isPlaying()) {
+      pause()
+    } else {
+      play()
+    }
   }
 
   /**
@@ -243,6 +307,20 @@ export function createTimelineState() {
       }
     }
 
+    // Animate camera rotation
+    const rotationTrack = tracks().find((t) => t.parameterPath === 'camera.rotation')
+    if (rotationTrack) {
+      const value = resolveKeyframeValue(rotationTrack.keyframes, frame)
+      if (
+        value !== null &&
+        typeof value === 'number' &&
+        flame.renderSettings.camera
+      ) {
+        flame.renderSettings.camera.rotation = value
+      }
+    }
+
+    // Animate camera zoom
     const zoomTrack = tracks().find((t) => t.parameterPath === 'camera.zoom')
     if (zoomTrack) {
       const value = resolveKeyframeValue(zoomTrack.keyframes, frame)
@@ -306,6 +384,9 @@ export function createTimelineState() {
     advanceFrame,
     goBackFrame,
     goToFrame,
+    play,
+    pause,
+    togglePlay,
     applyToFlame,
   } as const
 }
@@ -335,7 +416,7 @@ export function applyTimelineToFlame(
   const frame = timeline.currentFrame()
 
   // Animate camera position
-  const xTrack = timeline.tracks().find((t) => t.parameterPath === 'camera.x')
+    const xTrack = timeline.tracks().find((t) => t.parameterPath === 'camera.x')
   if (xTrack) {
     const value = resolveKeyframeValue(xTrack.keyframes, frame)
     if (
@@ -372,7 +453,6 @@ export function applyTimelineToFlame(
       flame.renderSettings.camera.zoom = value
     }
   }
-
   // Animate flame parameters
   const exposureTrack = timeline
     .tracks()
@@ -443,8 +523,27 @@ export function applyTimelineToFlame(
     .find((t) => t.parameterPath === 'backgroundColor')
   if (backgroundColorTrack) {
     const value = resolveKeyframeValue(backgroundColorTrack.keyframes, frame)
-    if (value !== null && Array.isArray(value)) {
+    if (
+      value !== null &&
+      Array.isArray(value) &&
+      value.length === 3 &&
+      typeof value[0] === 'number' &&
+      typeof value[1] === 'number' &&
+      typeof value[2] === 'number'
+    ) {
       flame.renderSettings.backgroundColor = value
+    }
+  }
+
+  // Animate edgeFadeColor (array of 4 numbers)
+  const edgeFadeColorTrack = timeline
+    .tracks()
+    .find((t) => t.parameterPath === 'edgeFadeColor')
+  if (edgeFadeColorTrack) {
+    const value = resolveKeyframeValue(edgeFadeColorTrack.keyframes, frame)
+    if (value !== null && Array.isArray(value) && value.length === 4) {
+      const typed = value as unknown as [number, number, number, number]
+      (flame as unknown as Record<string, unknown>).edgeFadeColor = typed
     }
   }
 }

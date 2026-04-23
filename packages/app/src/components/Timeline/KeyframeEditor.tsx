@@ -32,13 +32,13 @@ export function KeyframeEditor() {
   // Check if current path expects a number or string
   const isNumberValue = (): boolean => {
     const path = currentPath()
-    return ['exposure', 'skipIters', 'vibrancy'].includes(path)
+    return ['exposure', 'skipIters', 'vibrancy', 'paletteSpeed'].includes(path)
   }
 
-  // Check if current path expects an array value (like backgroundColor)
+  // Check if current path expects an array value (like backgroundColor, edgeFadeColor)
   const isArrayValue = (): boolean => {
     const path = currentPath()
-    return path === 'backgroundColor'
+    return path === 'backgroundColor' || path === 'edgeFadeColor'
   }
 
   // Format array value for display/input
@@ -46,15 +46,21 @@ export function KeyframeEditor() {
     if (Array.isArray(value) && value.length === 3) {
       return value.join(', ')
     }
+    if (Array.isArray(value) && value.length === 4) {
+      return value.join(', ')
+    }
     return String(value)
   }
 
   // Parse array value from input string
-  const parseArrayValue = (input: string): [number, number, number] | null => {
+  const parseArrayValue = (input: string): [number, number, number] | [number, number, number, number] | null => {
     try {
       const parts = input.split(',').map((s) => parseFloat(s.trim()))
       if (parts.length === 3) {
         return [parts[0]!, parts[1]!, parts[2]!]
+      }
+      if (parts.length === 4) {
+        return [parts[0]!, parts[1]!, parts[2]!, parts[3]!]
       }
     } catch {
       // Ignore parse errors
@@ -121,10 +127,20 @@ export function KeyframeEditor() {
           <option value="exposure">Exposure</option>
           <option value="skipIters">Skip Iterations</option>
           <option value="vibrancy">Vibrancy</option>
+          <option value="camera.x">Camera X Position</option>
+          <option value="camera.y">Camera Y Position</option>
+          <option value="camera.zoom">Camera Zoom</option>
+          <option value="camera.rotation">Camera Rotation</option>
+          <option value="exposure">Exposure</option>
+          <option value="skipIters">Skip Iterations</option>
+          <option value="vibrancy">Vibrancy</option>
           <option value="drawMode">Draw Mode</option>
           <option value="colorInitMode">Color Init Mode</option>
           <option value="pointInitMode">Point Init Mode</option>
-          <option value="backgroundColor">Background Color</option>
+          <option value="backgroundColor">Background Color (RGB)</option>
+          <option value="edgeFadeColor">Edge Fade Color (RGBA)</option>
+          <option value="palettePhase">Palette Phase (Cycling)</option>
+          <option value="paletteSpeed">Palette Speed</option>
         </select>
       </div>
 
@@ -145,7 +161,7 @@ export function KeyframeEditor() {
             isNumberValue()
               ? '0.25'
               : isArrayValue()
-                ? '0, 0, 0'
+                ? '0, 0, 0, 0.8'
                 : 'colorInitZero'
           }
           data-testid="keyframe-value-input"

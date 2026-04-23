@@ -15,6 +15,9 @@ const cameraDefault: { zoom: number; position: [number, number] } = {
   zoom: 1,
   position: [0, 0],
 }
+const edgeFadeColorDefault: [number, number, number, number] = [
+  0, 0, 0, 0.8,
+]
 const MAX_SKIP_ITERS_VALUE = 30
 const MIN_EXPOSURE_VALUE = -4
 const MAX_EXPOSURE_VALUE = 4
@@ -27,6 +30,8 @@ const renderSettingsDefault: RenderSettings = {
   colorInitMode: 'colorInitZero',
   pointInitMode: 'pointInitUnitDisk',
   vibrancy: 0.5,
+  palettePhase: 0,
+  paletteSpeed: 0.5,
 }
 export const latestSchemaVersion = '1.0'
 const MAX_LENGTH_AUTHOR_STRING = 255
@@ -97,10 +102,29 @@ const RenderSettings = v.object({
     ),
     0.5,
   ),
+  palettePhase: v.optional(
+    v.pipe(
+      v.number(),
+      v.minValue(0),
+      v.maxValue(1),
+    ),
+    0,
+  ),
+  paletteSpeed: v.optional(
+    v.pipe(
+      v.number(),
+      v.minValue(0),
+      v.maxValue(10),
+    ),
+    0.5,
+  ),
   backgroundColor: v.optional(
     v.tuple([ColorValueSchema, ColorValueSchema, ColorValueSchema]),
   ),
   camera: v.optional(CameraObjSchema, cameraDefault),
+  edgeFadeColor: v.optional(
+    v.tuple([ColorValueSchema, ColorValueSchema, ColorValueSchema, ColorValueSchema]),
+  ),
 })
 
 const FlameMetadata = v.object({

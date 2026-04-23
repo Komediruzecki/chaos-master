@@ -97,6 +97,43 @@
   }
 }
 
+.playbackControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-0.75);
+  justify-content: center;
+  margin-bottom: var(--space-1.5);
+}
+
+.controlButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--neutral-300);
+  border-radius: var(--round);
+  background: var(--neutral-200);
+  color: var(--neutral-600);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: var(--neutral-300);
+    color: var(--neutral-900);
+
+    [data-theme='dark'] & {
+      background: var(--neutral-700);
+      color: var(--neutral-100);
+    }
+  }
+
+  span {
+    padding: 0 0.5rem;
+    font-weight: 600;
+  }
+}
+
 .timelineControls {
   display: grid;
   grid-template-columns: 1fr 1fr;

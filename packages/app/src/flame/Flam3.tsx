@@ -37,6 +37,7 @@ type Flam3Props = {
   setCurrentQuality?: (fn: () => number) => void
   setQualityPointCountLimit?: (fn: () => number) => void
   palette?: Palette
+  onEnterAnimation?: () => void
 }
 
 export function Flam3(props: Flam3Props) {
@@ -80,8 +81,11 @@ export function Flam3(props: Flam3Props) {
     return bucketProbabilityInv() / (q ** 2 - 2 * q + 1)
   }
 
+  const [_accumulatedPointCount, _setAccumulatedPointCount] = createSignal(0)
+  const [_batchIndex, _setBatchIndex] = createSignal(0)
+
   props.setCurrentQuality?.(
-    () => 1 - sqrt(bucketProbabilityInv() / accumulatedPointCount()),
+    () => 1 - sqrt(bucketProbabilityInv() / _accumulatedPointCount()),
   )
   props.setQualityPointCountLimit?.(qualityPointCountLimit)
 
@@ -269,13 +273,13 @@ export function Flam3(props: Flam3Props) {
       void props.palette // track palette changes
     })
 
-    const [batchIndex, setBatchIndex] = createSignal(0)
-    const [accumulatedPointCount, setAccumulatedPointCount] = createSignal(0)
     const [forceDrawToScreen, setForceDrawToScreen] = createSignal(true)
     const [clearRequested, setClearRequested] = createSignal(true)
+    const [_batchIndex, _setBatchIndex] = createSignal(0)
+    const [_accumulatedPointCount, _setAccumulatedPointCount] = createSignal(0)
 
     createAnimationFrame(
-      (_frameId) => {
+      (frameId: number) => {
         /**
          * Rendering to screen is expensive because it involves
          * blurring and color grading. We only want to do this
@@ -285,8 +289,8 @@ export function Flam3(props: Flam3Props) {
          */
         const shouldRenderFinalImage =
           forceDrawToScreen() ||
-          batchIndex() < OUTPUT_EVERY_FRAME_BATCH_INDEX ||
-          batchIndex() % OUTPUT_INTERVAL_BATCH_INDEX === 0 ||
+          _batchIndex() < OUTPUT_EVERY_FRAME_BATCH_INDEX ||
+          _batchIndex() % OUTPUT_INTERVAL_BATCH_INDEX === 0 ||
           props.onExportImage !== undefined
 
         const pointCountPerBatch = props.pointCountPerBatch
@@ -303,7 +307,7 @@ export function Flam3(props: Flam3Props) {
         }
 
         const timings = timestampQuery.average()
-        const iterationCount = continueRendering(accumulatedPointCount())
+        const iterationCount = continueRendering(_accumulatedPointCount())
           ? timings
             ? estimateIterationCount(timings, shouldRenderFinalImage)
             : 1
@@ -329,15 +333,15 @@ export function Flam3(props: Flam3Props) {
             pass.end()
           }
 
-          setAccumulatedPointCount(
-            accumulatedPointCount() + pointCountPerBatch * iterationCount,
+          _setAccumulatedPointCount(
+            _accumulatedPointCount() + pointCountPerBatch * iterationCount,
           )
         }
 
         if (shouldRenderFinalImage) {
           colorGradingUniforms.writePartial({
             averagePointCountPerBucketInv:
-              bucketProbabilityInv() / accumulatedPointCount(),
+              bucketProbabilityInv() / _accumulatedPointCount(),
           })
           if (props.adaptiveFilterEnabled) {
             const pass = encoder.beginComputePass({
@@ -383,10 +387,10 @@ export function Flam3(props: Flam3Props) {
 
         props.onExportImage?.(canvas)
 
-        setBatchIndex(batchIndex() + 1)
+        _setBatchIndex(_batchIndex() + 1)
         setForceDrawToScreen(false)
       },
-      continueRendering(accumulatedPointCount())
+      continueRendering(_accumulatedPointCount())
         ? () => props.renderInterval
         : 0,
       () => Promise.resolve(device.queue.onSubmittedWorkDone()),

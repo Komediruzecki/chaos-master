@@ -1,18 +1,32 @@
-import { createSignal } from 'solid-js'
+import { createSignal, Show } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
+import {
+  Cross,
+  Pause,
+  PlayPause,
+  SkipBack,
+  SkipForward,
+} from '@/icons'
 import { Checkbox } from '../Checkbox/Checkbox'
-import { Cross } from '../icons'
 import { Slider } from '../Sliders/Slider'
 import { KeyframeEditor } from './KeyframeEditor'
 import { TimelinePanel } from './TimelinePanel'
 import { TimelineRuler } from './TimelineRuler'
 import ui from './TimelineSection.module.css'
-import type { TimelineSectionProps } from './TimelineSection'
+import type { TimelineConfig } from '@/utils/timeline'
+
+export interface TimelineSectionProps {
+  onEnterAnimation?: () => void
+}
 
 export function TimelineSection({ onEnterAnimation }: TimelineSectionProps) {
   const timeline = useTimeline()
   const [collapsed, setCollapsed] = createSignal(false)
   const isPlaying = timeline.isPlaying
+
+  const setConfig = (updates: Partial<TimelineConfig>) => {
+    timeline.setConfig((prev) => ({ ...prev, ...updates } as TimelineConfig))
+  }
 
   return (
     <div class={ui.section} data-testid="timeline-section">
@@ -20,7 +34,7 @@ export function TimelineSection({ onEnterAnimation }: TimelineSectionProps) {
         <div class={ui.headerLeft}>
           <h3 class={ui.title}>Timeline</h3>
           <span class={ui.isPlayingIndicator} data-testid="timeline-playing">
-            {isPlaying() ? '●' : '○'}
+            {(isPlaying() ? '●' : '○')}
           </span>
         </div>
         <div class={ui.headerRight}>
@@ -41,6 +55,42 @@ export function TimelineSection({ onEnterAnimation }: TimelineSectionProps) {
             Enter Animation Mode
           </button>
 
+          <div class={ui.playbackControls}>
+            <button
+              class={ui.controlButton}
+              onClick={timeline.goBackFrame}
+              title="Previous Frame"
+              data-testid="prev-frame"
+            >
+              <SkipBack />
+            </button>
+            <button
+              class={ui.controlButton}
+              onClick={timeline.togglePlay}
+              title={isPlaying() ? 'Pause' : 'Play'}
+              data-testid="play-pause"
+            >
+              {isPlaying() ? <Pause /> : <PlayPause />}
+            </button>
+            <button
+              class={ui.controlButton}
+              onClick={() => {
+                timeline.goToFrame(timeline.currentFrame())
+              }}
+              title="Go to Frame"
+            >
+              <span>{timeline.currentFrame()}</span>
+            </button>
+            <button
+              class={ui.controlButton}
+              onClick={timeline.advanceFrame}
+              title="Next Frame"
+              data-testid="next-frame"
+            >
+              <SkipForward />
+            </button>
+          </div>
+
           <div class={ui.timelineControls}>
             <Slider
               label="FPS"
@@ -48,10 +98,21 @@ export function TimelineSection({ onEnterAnimation }: TimelineSectionProps) {
               min={1}
               max={60}
               step={1}
-              onInput={(fps) =>
-                timeline.setConfig((prev) => ({ ...prev, fps }))
-              }
+              onInput={(fps: number) => {
+                setConfig({ fps })
+              }}
               formatValue={(fps) => fps.toString()}
+            />
+            <Slider
+              label="Time Scale"
+              value={timeline.config().timeScale}
+              min={0.1}
+              max={4}
+              step={0.1}
+              onInput={(timeScale: number) => {
+                setConfig({ timeScale })
+              }}
+              formatValue={(timeScale) => `${timeScale.toFixed(1)}x`}
             />
             <Slider
               label="Start Frame"
@@ -59,9 +120,9 @@ export function TimelineSection({ onEnterAnimation }: TimelineSectionProps) {
               min={0}
               max={timeline.config().endFrame}
               step={1}
-              onInput={(startFrame) =>
-                timeline.setConfig((prev) => ({ ...prev, startFrame }))
-              }
+              onInput={(startFrame: number) => {
+                setConfig({ startFrame })
+              }}
               formatValue={(frame) => frame.toString()}
             />
             <Slider
@@ -70,17 +131,17 @@ export function TimelineSection({ onEnterAnimation }: TimelineSectionProps) {
               min={timeline.config().startFrame}
               max={timeline.config().endFrame + 100}
               step={1}
-              onInput={(endFrame) =>
-                timeline.setConfig((prev) => ({ ...prev, endFrame }))
-              }
+              onInput={(endFrame: number) => {
+                setConfig({ endFrame })
+              }}
               formatValue={(frame) => frame.toString()}
             />
             <label class={ui.checkboxLabel}>
               <Checkbox
                 checked={timeline.config().loop}
-                onChange={(loop) =>
-                  timeline.setConfig((prev) => ({ ...prev, loop }))
-                }
+                onChange={(loop: boolean) => {
+                  setConfig({ loop })
+                }}
               />
               <span>Loop Animation</span>
             </label>
