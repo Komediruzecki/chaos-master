@@ -1,6 +1,9 @@
 import { createSignal, For, Show, useContext } from 'solid-js'
 import { vec2f, vec4f } from 'typegpu/data'
-import { TimelineContextProvider } from '@/contexts/TimelineContext'
+import {
+  TimelineContext,
+  TimelineContextProvider,
+} from '@/contexts/TimelineContext'
 import { DEFAULT_QUALITY } from '@/defaults'
 import { examples } from '@/flame/examples'
 import { Flam3 } from '@/flame/Flam3'
@@ -49,7 +52,7 @@ function Preview(props: { flameDescriptor: FlameDescriptor }) {
             />
           </Camera2D>
         </AutoCanvas>
-      </TimelineContext.Provider>
+      </TimelineContextProvider>
     </Root>
   )
 }

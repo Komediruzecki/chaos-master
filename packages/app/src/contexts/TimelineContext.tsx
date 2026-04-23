@@ -5,7 +5,7 @@ import type { JSX } from 'solid-js'
 
 export type TimelineContextValue = ReturnType<typeof createTimelineState>
 
-export const TimelineContext = createContext<TimelineContextValue>()
+export const TimelineContext = createContext<TimelineContextValue>({} as TimelineContextValue)
 
 export const TimelineContextProvider = TimelineContext.Provider
 
@@ -24,7 +24,7 @@ export function createTimelineStateSignal() {
 export function TimelineProvider(props: { children: JSX.Element }) {
   const [timeline] = createTimelineStateSignal()
   return (
-    <TimelineContext.Provider value={timeline()}>
+    <TimelineContext.Provider value={timeline}>
       {props.children}
     </TimelineContext.Provider>
   )
