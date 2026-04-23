@@ -33,7 +33,7 @@ function Preview(props: { flameDescriptor: FlameDescriptor }) {
         powerPreference: 'high-performance',
       }}
     >
-      <TimelineContextProvider value={timeline()}>
+      <TimelineContextProvider value={timeline}>
         <AutoCanvas pixelRatio={1}>
           <Camera2D
             position={vec2f(
