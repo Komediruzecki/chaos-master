@@ -630,8 +630,7 @@ export function createTimelineState() {
     pause,
     togglePlay,
     applyToFlame,
-    timeScale,
-  } as const
+  }
 }
 
 /**

@@ -1,6 +1,7 @@
 import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js'
 import { arrayOf, vec2u, vec3f, vec4f } from 'typegpu/data'
 import { clamp } from 'typegpu/std'
+import { StorageFlag } from 'typegpu/core'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { setRenderTimings } from '@/flame/renderStats'
 import { createTimestampQuery } from '@/utils/createTimestampQuery'
@@ -20,6 +21,7 @@ import type { Palette } from './colorMap'
 import type { FlameDescriptor } from './schema/flameSchema'
 import type { ExportImageType } from '@/App'
 import type { FlameDescriptor as TimelineFlameDescriptor } from '@/utils/timeline'
+import type { TgpuBuffer, WgslArray } from 'typegpu'
 
 const { sqrt, floor } = Math
 
@@ -120,25 +122,30 @@ export function Flam3(props: Flam3Props) {
     setBuffersToCleanup(new Set([...current, colorGradingUniforms]))
   })
 
-  const outputTextures = createMemo(() => {
-    const { width, height } = canvasSize()
+  // Create buffers once at component mount - they will be cleaned up after GPU work
+  const { width, height } = canvasSize()
+  let outputTextures:
+    | {
+        accumulationBuffer: ReturnType<typeof root.createBuffer>
+        postprocessBuffer: ReturnType<typeof root.createBuffer>
+        textureSize: readonly [number, number]
+      }
+    | undefined = undefined
+
+  // Initialize buffers at component mount - they persist until cleanup
+  createEffect(() => {
     if (width * height === 0) {
-      return
+      return undefined
     }
 
-    const accumulationBuffer = root
-      .createBuffer(arrayOf(Bucket, width * height))
-      .$usage('storage')
-
-    const postprocessBuffer = root
-      .createBuffer(arrayOf(Bucket, width * height))
-      .$usage('storage')
-
-    return {
-      accumulationBuffer,
-      postprocessBuffer,
+    const newTex = {
+      accumulationBuffer: root.createBuffer(arrayOf(Bucket, width * height)).$usage('storage'),
+      postprocessBuffer: root.createBuffer(arrayOf(Bucket, width * height)).$usage('storage'),
       textureSize: [width, height] as const,
     }
+
+    outputTextures = newTex
+    return newTex
   })
 
   // Properly clean up buffers after GPU work completes
@@ -159,16 +166,18 @@ export function Flam3(props: Flam3Props) {
   })
 
   const colorGradingPipeline = createMemo(() => {
-    const o = outputTextures()
+    const o = outputTextures
     if (!o) {
       return undefined
     }
     const { textureSize, postprocessBuffer, accumulationBuffer } = o
+    const typedPostprocessBuffer = postprocessBuffer as TgpuBuffer<WgslArray<typeof Bucket>> & StorageFlag
+    const typedAccumulationBuffer = accumulationBuffer as TgpuBuffer<WgslArray<typeof Bucket>> & StorageFlag
     return createColorGradingPipeline(
       root,
       colorGradingUniforms,
       textureSize,
-      props.adaptiveFilterEnabled ? postprocessBuffer : accumulationBuffer,
+      props.adaptiveFilterEnabled ? typedPostprocessBuffer : typedAccumulationBuffer,
       canvasFormat,
       drawModeToImplFn[props.flameDescriptor.renderSettings.drawMode],
       props.palette,
@@ -176,16 +185,18 @@ export function Flam3(props: Flam3Props) {
   })
 
   const runBlur = createMemo(() => {
-    const o = outputTextures()
+    const o = outputTextures
     if (!o) {
       return undefined
     }
     const { textureSize, accumulationBuffer, postprocessBuffer } = o
+    const typedAccumulationBuffer = accumulationBuffer as TgpuBuffer<WgslArray<typeof Bucket>> & StorageFlag
+    const typedPostprocessBuffer = postprocessBuffer as TgpuBuffer<WgslArray<typeof Bucket>> & StorageFlag
     return createBlurPipeline(
       root,
       textureSize,
-      accumulationBuffer,
-      postprocessBuffer,
+      typedAccumulationBuffer,
+      typedPostprocessBuffer,
     )
   })
 
@@ -233,12 +244,16 @@ export function Flam3(props: Flam3Props) {
   }
 
   createEffect(() => {
-    const o = outputTextures()
-    if (!o) {
+    const tex = outputTextures
+    if (!tex) {
       return undefined
     }
 
-    const { textureSize, accumulationBuffer } = o
+    const { textureSize, accumulationBuffer, postprocessBuffer } = tex
+
+    // Add type assertions to satisfy typegpu's strict buffer typing
+    const typedAccumulationBuffer = accumulationBuffer as TgpuBuffer<WgslArray<typeof Bucket>> & StorageFlag
+    const typedPostprocessBuffer = postprocessBuffer as TgpuBuffer<WgslArray<typeof Bucket>> & StorageFlag
 
     const ifsPipeline = createIFSPipeline(
       root,
@@ -247,7 +262,7 @@ export function Flam3(props: Flam3Props) {
       pointRandomSeeds,
       animatedFlame().transforms as never,
       textureSize,
-      accumulationBuffer,
+      typedAccumulationBuffer,
       animatedFlame().renderSettings.colorInitMode,
       animatedFlame().renderSettings.pointInitMode,
     )
@@ -371,16 +386,13 @@ export function Flam3(props: Flam3Props) {
         device.queue.submit([encoder.finish()])
 
         // Mark buffers for cleanup after GPU work completes
+        // Use the same buffer instances that were created at component mount
         device.queue
           .onSubmittedWorkDone()
           .then(() => {
-            const currentBuffers =
-              outputTextures()?.accumulationBuffer ||
-              outputTextures()?.postprocessBuffer
-            if (currentBuffers) {
-              const cleanupSet = buffersToCleanup()
-              setBuffersToCleanup(new Set([...cleanupSet, currentBuffers]))
-            }
+            const currentBuffers = { accumulationBuffer, postprocessBuffer }
+            const cleanupSet = buffersToCleanup()
+            setBuffersToCleanup(new Set([...cleanupSet, currentBuffers.accumulationBuffer, currentBuffers.postprocessBuffer]))
             timestampQuery.read(frameId).catch(() => {})
           })
           .catch(() => {})
