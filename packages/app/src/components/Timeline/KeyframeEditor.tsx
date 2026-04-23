@@ -37,7 +37,7 @@ export function KeyframeEditor() {
   // Check if current path expects a number or string
   const isNumberValue = (): boolean => {
     const path = currentPath()
-    return ['exposure', 'skipIters', 'vibrancy', 'paletteSpeed'].includes(path)
+    return ['exposure', 'skipIters', 'vibrancy', 'paletteSpeed', 'waveX', 'waveY', 'intensity', 'periodicity', 'octaves', 'oscillationSpeed', 'rippleRadius', 'distortion'].includes(path)
   }
 
   // Check if current path expects an array value (like backgroundColor, edgeFadeColor)
@@ -55,6 +55,12 @@ export function KeyframeEditor() {
       return value.join(', ')
     }
     return String(value)
+  }
+
+  // Check if current path expects a variation parameter
+  const isVariationParam = (): boolean => {
+    const path = currentPath()
+    return ['waveX', 'waveY', 'intensity', 'periodicity', 'octaves', 'oscillationSpeed', 'rippleRadius', 'distortion'].includes(path)
   }
 
   // Parse array value from input string
@@ -95,7 +101,7 @@ export function KeyframeEditor() {
     if (isArrayValue()) {
       const parsed = parseArrayValue(value)
       keyValue = parsed ? `[${parsed.join(', ')}]` : '[0, 0, 0]'
-    } else if (isNumberValue()) {
+    } else if (isNumberValue() || isVariationParam()) {
       keyValue = Number(value)
     }
 
@@ -162,23 +168,28 @@ export function KeyframeEditor() {
           onChange={(e) => setSelectedPath(e.currentTarget.value)}
           data-testid="parameter-select"
         >
-          <option value="exposure">Exposure</option>
-          <option value="skipIters">Skip Iterations</option>
-          <option value="vibrancy">Vibrancy</option>
-          <option value="camera.x">Camera X Position</option>
-          <option value="camera.y">Camera Y Position</option>
-          <option value="camera.zoom">Camera Zoom</option>
-          <option value="camera.rotation">Camera Rotation</option>
-          <option value="exposure">Exposure</option>
-          <option value="skipIters">Skip Iterations</option>
-          <option value="vibrancy">Vibrancy</option>
-          <option value="drawMode">Draw Mode</option>
-          <option value="colorInitMode">Color Init Mode</option>
-          <option value="pointInitMode">Point Init Mode</option>
-          <option value="backgroundColor">Background Color (RGB)</option>
-          <option value="edgeFadeColor">Edge Fade Color (RGBA)</option>
-          <option value="palettePhase">Palette Phase (Cycling)</option>
-          <option value="paletteSpeed">Palette Speed</option>
+          <option value="exposure">Render - Exposure</option>
+          <option value="skipIters">Render - Skip Iterations</option>
+          <option value="vibrancy">Render - Vibrancy</option>
+          <option value="palettePhase">Render - Palette Phase</option>
+          <option value="paletteSpeed">Render - Palette Speed</option>
+          <option value="drawMode">Render - Draw Mode</option>
+          <option value="colorInitMode">Render - Color Init Mode</option>
+          <option value="pointInitMode">Render - Point Init Mode</option>
+          <option value="backgroundColor">Render - Background Color (RGB)</option>
+          <option value="edgeFadeColor">Render - Edge Fade Color (RGBA)</option>
+          <option value="camera.x">Camera - X Position</option>
+          <option value="camera.y">Camera - Y Position</option>
+          <option value="camera.zoom">Camera - Zoom</option>
+          <option value="camera.rotation">Camera - Rotation</option>
+          <option value="waveX">Variation - Wave X</option>
+          <option value="waveY">Variation - Wave Y</option>
+          <option value="intensity">Variation - Intensity</option>
+          <option value="periodicity">Variation - Periodicity</option>
+          <option value="octaves">Variation - Octaves</option>
+          <option value="oscillationSpeed">Variation - Oscillation Speed</option>
+          <option value="rippleRadius">Variation - Ripple Radius</option>
+          <option value="distortion">Variation - Distortion</option>
         </select>
       </div>
 
@@ -196,7 +207,7 @@ export function KeyframeEditor() {
           value={keyframeValue()}
           onInput={(e) => setKeyframeValue(e.currentTarget.value)}
           placeholder={
-            isNumberValue()
+            isNumberValue() || isVariationParam()
               ? '0.25'
               : isArrayValue()
                 ? '0, 0, 0, 0.8'
