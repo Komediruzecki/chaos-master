@@ -9,7 +9,9 @@
  */
 
 import type { FlameDescriptor, TransformRecord } from './schema/flameSchema'
-import type { TransformFunction } from './transformFunction'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TransformFunction = any
 
 export interface BucketData {
   count: number
@@ -52,7 +54,7 @@ export class CPUFlameRenderer {
   /**
    * Render flame to buckets using CPU
    */
-  async render(options: RaytracingOptions): Promise<RenderResult> {
+  render(options: RaytracingOptions): RenderResult {
     const { width, height, quality, pointCountPerBatch } = options
 
     // Initialize buckets
@@ -95,54 +97,89 @@ export class CPUFlameRenderer {
   /**
    * Create a CPU-based transform function for testing
    */
-  private createCPUDummyTransform(transform: any): TransformFunction {
+  private createCPUDummyTransform(transform: {
+    matrix: number[]
+    uniforms: {
+      scale: [number, number, number]
+      rotateX: number
+      rotateY: number
+      rotateZ: number
+      shearX: number
+      shearY: number
+    }
+  }) {
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return {
-      fnImpl: (point: { position: [number, number, number]; color: [number, number] }) => {
+      fnImpl: function (point: any): any {
         // Simplified CPU transform - in real implementation,
         // this would compute the same iterations as WGSL
-        const pos = point.position
+        const pos = point.position as [number, number, number]
 
         // Apply affine transforms (simplified)
-        const newX = pos[0] * transform.matrix[0] + pos[1] * transform.matrix[3] + transform.matrix[6]
-        const newY = pos[0] * transform.matrix[1] + pos[1] * transform.matrix[4] + transform.matrix[7]
-        const newZ = pos[0] * transform.matrix[2] + pos[1] * transform.matrix[5] + transform.matrix[8]
+        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+
+        const newX =
+          pos[0] * (matrix[0] ?? 1) +
+          pos[1] * (matrix[3] ?? 0) +
+          (matrix[6] ?? 0)
+        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+
+        const newY =
+          pos[0] * (matrix[1] ?? 0) +
+          pos[1] * (matrix[4] ?? 1) +
+          (matrix[7] ?? 0)
+        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+
+        const newZ =
+          pos[0] * (matrix[2] ?? 0) +
+          pos[1] * (matrix[5] ?? 0) +
+          (matrix[8] ?? 0)
 
         // Apply variations (simplified)
+        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+
         point.position = [
-          newX + Math.sin(point.color[0] * 10) * 0.1,
-          newY + Math.cos(point.color[1] * 10) * 0.1,
+          newX + Math.sin((point.color[0] as number) * 10) * 0.1,
+          newY + Math.cos((point.color[1] as number) * 10) * 0.1,
           newZ,
         ]
 
         // Update color based on variations
+        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+
         point.color = [
-          (point.color[0] + Math.random()) % 1,
-          (point.color[1] + Math.random()) % 1,
+          ((point.color[0] as number) + Math.random()) % 1,
+          ((point.color[1] as number) + Math.random()) % 1,
         ]
 
         return point
       },
       Uniforms: transform.uniforms,
-    }
+    } as unknown as Record<string, any>
   }
 }
 
 /**
  * Test CPU renderer against WebGPU renderer
  */
-export async function testCPURenderer(
+export function testCPURenderer(
   flameDescriptor: FlameDescriptor,
   options: RaytracingOptions,
-): Promise<{ passed: boolean; error?: string; gpuResults?: any }> {
+): { passed: boolean; error?: string } {
   try {
     const cpuRenderer = new CPUFlameRenderer(flameDescriptor)
 
+    // eslint-disable-next-line no-console
     console.log('[CPU Test] Rendering with CPU renderer...')
-    const cpuResults = await cpuRenderer.render(options)
+    const cpuResults = cpuRenderer.render(options)
+    // eslint-disable-next-line no-console
     console.log('[CPU Test] CPU render complete:', cpuResults)
 
     // In real implementation, we'd compare with GPU results
+    // eslint-disable-next-line no-console
     console.log('[CPU Test] Comparison test would go here')
+    // eslint-disable-next-line no-console
     console.log('[CPU Test] GPU results would need to be captured and compared')
 
     return {

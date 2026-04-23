@@ -1,9 +1,11 @@
 # Timeline Editor Feature Plan
 
 ## Overview
+
 Transform the timeline editor into a comprehensive animation tool for flame fractals with rich keyframe support, playback controls, and professional-grade features.
 
 ## Current State
+
 - Basic timeline structure with FPS, Start/End Frame, and Loop controls
 - Collapsible UI section
 - Keyframe editor component (basic structure)
@@ -13,15 +15,18 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 ## Phase 1: Keyframe Parameters and Capabilities
 
 ### 1.1 Expand Keyframe Parameters
+
 **Status**: In Progress
 
 #### Camera Parameters
+
 - [x] Camera X Position (keyframes)
 - [x] Camera Y Position (keyframes)
 - [x] Camera Zoom (keyframes)
 - [x] Camera Rotation (keyframes)
 
 #### Render Settings
+
 - [x] Exposure (keyframes)
 - [x] Vibrancy (keyframes)
 - [x] Skip Iterations (keyframes)
@@ -32,16 +37,19 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 - [x] Edge Fade Color RGB (keyframes: [r, g, b, a])
 
 #### Flame Transform Parameters
+
 - [ ] All 26 flame variation parameters (waveX, waveY, intensity, etc.)
 - [ ] Variation weights and ratios
 - [ ] Color palette cycling/phase (time-based)
 
 #### Animation Presets
+
 - [ ] Create animation presets (camera pans, zooms, rotations)
 - [ ] Save/load presets
 - [ ] Apply preset to current timeline
 
 ### 1.2 Advanced Keyframe Features
+
 - [ ] Keyframe interpolation modes: Linear, Ease-In, Ease-Out, Bounce, Elastic
 - [ ] Keyframe overlap handling (auto-split at intersections)
 - [ ] Keyframe deletion with confirmation
@@ -50,6 +58,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 - [ ] Keyframe mirror (copy from opposite side)
 
 ### 1.3 Bezier and Spline Support
+
 - [ ] Custom Bezier control points for smooth animations
 - [ ] Preview control points during edit
 - [ ] Visual feedback on curve tension
@@ -58,6 +67,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 ## Phase 2: Animation Controls and Playback
 
 ### 2.1 Playback Controls
+
 **Status**: Basic controls in place, needs enhancement
 
 - [x] Play/Pause button with visual feedback
@@ -70,6 +80,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 - [ ] Go to frame N input field with validation
 
 ### 2.2 Time Controls
+
 - [ ] Play speed control (slow, normal, fast, fastest)
 - [ ] Time scale slider for real-time preview
 - [ ] Scrubbing along timeline
@@ -78,6 +89,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 - [ ] Current time in seconds (based on FPS)
 
 ### 2.3 Preview Window
+
 - [ ] Real-time preview canvas
 - [ ] One-click preview (show all keyframes in sequence)
 - [ ] Preview settings (resolution, quality, render speed)
@@ -86,6 +98,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 - [ ] Preview GPU acceleration toggle
 
 ### 2.4 Export Features
+
 - [ ] Export animation as video (WebM, MP4, GIF)
 - [ ] Export as FLAM3 file sequence
 - [ ] Batch export multiple animations
@@ -97,6 +110,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 ## Phase 3: UI/UX Improvements
 
 ### 3.1 Layout and Navigation
+
 - [ ] Collapsible/expandable timeline controls
 - [ ] Horizontal scrolling with smooth performance
 - [ ] Pin/Unpin tracks
@@ -106,6 +120,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 - [ ] Keyboard shortcuts reference modal
 
 ### 3.2 Visual Design
+
 - [ ] Dark mode optimizations for timeline
 - [ ] Custom color schemes for keyframes
 - [ ] Active/inactive track highlighting
@@ -115,6 +130,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 - [ ] Progress bar for current frame
 
 ### 3.3 Responsive Design
+
 - [ ] Tablet layout optimizations
 - [ ] Touch gesture support for timeline (pinch, swipe)
 - [ ] Mobile hamburger menu for timeline options
@@ -122,6 +138,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 - [ ] Collapsible sidebar for variations
 
 ### 3.4 Accessibility
+
 - [ ] Screen reader support for keyframe controls
 - [ ] High contrast mode
 - [ ] Keyboard navigation (Tab, Arrow keys, Enter)
@@ -131,6 +148,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 ## Phase 4: Performance Optimizations
 
 ### 4.1 Rendering Performance
+
 - [ ] GPU-accelerated timeline rendering
 - [ ] Lazy load of track data
 - [ ] Prefetch next/previous frames
@@ -140,6 +158,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 - [ ] Progressive rendering (low-res first, then high-res)
 
 ### 4.2 Animation Performance
+
 - [ ] Preview optimization (adaptive resolution)
 - [ ] Frame skipping for fast-forward playback
 - [ ] Timeline state caching
@@ -148,6 +167,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 - [ ] Debounced UI updates
 
 ### 4.3 Resource Management
+
 - [ ] Automatic garbage collection of unused keyframes
 - [ ] Memory limit warnings
 - [ ] Purge unused tracks
@@ -157,6 +177,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 ## Phase 5: Testing Strategy
 
 ### 5.1 Unit Tests
+
 - [ ] Keyframe interpolation functions
 - [ ] Timeline state management
 - [ ] Easing function calculations
@@ -165,6 +186,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 - [ ] Drag-and-drop functionality
 
 ### 5.2 Integration Tests
+
 - [ ] Create/update/delete keyframes flow
 - [ ] Playback controls integration
 - [ ] Export workflow
@@ -173,6 +195,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 - [ ] Timeline context integration
 
 ### 5.3 E2E Tests
+
 - [ ] Full animation creation workflow
 - [ ] Play/pause/stop navigation
 - [ ] Frame scrubbing
@@ -181,6 +204,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 - [ ] Responsive behavior
 
 ### 5.4 Performance Tests
+
 - [ ] Keyframe count performance (100+, 1000+ keyframes)
 - [ ] Playback smoothness at different speeds
 - [ ] Memory usage over time
@@ -190,6 +214,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 ## Phase 6: Documentation and Help
 
 ### 6.1 User Documentation
+
 - [ ] Getting started guide
 - [ ] Tutorial videos/gifs
 - [ ] Feature reference (all parameters)
@@ -198,6 +223,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 - [ ] FAQ
 
 ### 6.2 In-App Help
+
 - [ ] Tooltips for all controls
 - [ ] Quick start popup on first use
 - [ ] Sample animations with code
@@ -205,6 +231,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 - [ ] Contextual help on selection
 
 ### 6.3 API Documentation
+
 - [ ] Timeline API reference
 - [ ] Keyframe API methods
 - [ ] Event system documentation
@@ -213,18 +240,21 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 ## Phase 7: Advanced Features (Optional)
 
 ### 7.1 Timeline Compositing
+
 - [ ] Multiple animation layers
 - [ ] Layer blending modes
 - [ ] Layer masks
 - [ ] Non-linear editing (cut, splice, trim)
 
 ### 7.2 Collaboration
+
 - [ ] Import/export timeline JSON
 - [ ] Share timeline links
 - [ ] Real-time collaboration (future)
 - [ ] Version history with rollback
 
 ### 7.3 Machine Learning
+
 - [ ] Auto-suggest keyframe positions
 - [ ] Predict smooth transitions
 - [ ] Animate based on rough sketch
@@ -233,6 +263,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 ## Implementation Priority
 
 ### High Priority (Phase 1)
+
 1. Camera X/Y Position keyframes
 2. Camera Zoom keyframes
 3. Exposure keyframes
@@ -243,6 +274,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 8. Frame-by-frame navigation
 
 ### Medium Priority (Phase 2)
+
 1. All 26 variation parameters
 2. Background color keyframes
 3. Speed controls
@@ -252,6 +284,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 7. Keyboard shortcuts
 
 ### Low Priority (Phase 3-7)
+
 1. UI/UX improvements
 2. Performance optimizations
 3. Documentation
@@ -261,7 +294,7 @@ Transform the timeline editor into a comprehensive animation tool for flame frac
 ## Success Metrics
 
 - [ ] At least 20 keyframe parameters supported
-- [ ] >95% frame accuracy in playback
+- [ ] > 95% frame accuracy in playback
 - [ ] Smooth playback at 60fps
 - [ ] <100ms lag on scrubbing
 - [ ] <500ms preview generation

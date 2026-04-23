@@ -12,7 +12,9 @@ describe('Timeline Utilities', () => {
     describe('addKeyframe', () => {
       it('should add a keyframe with a number value', () => {
         timeline.addKeyframe('exposure', 10, 0.5, 'linear')
-        const track = timeline.tracks().find(t => t.parameterPath === 'exposure')
+        const track = timeline
+          .tracks()
+          .find((t) => t.parameterPath === 'exposure')
         expect(track).toBeDefined()
         expect(track?.keyframes).toHaveLength(1)
         expect(track?.keyframes[0]).toEqual({
@@ -24,7 +26,9 @@ describe('Timeline Utilities', () => {
 
       it('should add a keyframe with a string value', () => {
         timeline.addKeyframe('drawMode', 15, 'light', 'easeInOut')
-        const track = timeline.tracks().find(t => t.parameterPath === 'drawMode')
+        const track = timeline
+          .tracks()
+          .find((t) => t.parameterPath === 'drawMode')
         expect(track).toBeDefined()
         expect(track?.keyframes[0]).toEqual({
           frame: 15,
@@ -35,7 +39,9 @@ describe('Timeline Utilities', () => {
 
       it('should add a keyframe with an array value', () => {
         timeline.addKeyframe('backgroundColor', 20, [1, 0, 0], 'linear')
-        const track = timeline.tracks().find(t => t.parameterPath === 'backgroundColor')
+        const track = timeline
+          .tracks()
+          .find((t) => t.parameterPath === 'backgroundColor')
         expect(track).toBeDefined()
         expect(track?.keyframes[0]).toEqual({
           frame: 20,
@@ -47,7 +53,9 @@ describe('Timeline Utilities', () => {
       it('should update existing keyframe if frame already exists', () => {
         timeline.addKeyframe('exposure', 10, 0.5, 'linear')
         timeline.addKeyframe('exposure', 10, 0.75, 'easeOut')
-        const track = timeline.tracks().find(t => t.parameterPath === 'exposure')
+        const track = timeline
+          .tracks()
+          .find((t) => t.parameterPath === 'exposure')
         expect(track).toBeDefined()
         expect(track?.keyframes).toHaveLength(1)
         expect(track?.keyframes[0]).toEqual({
@@ -62,14 +70,18 @@ describe('Timeline Utilities', () => {
       it('should remove keyframe at specific frame', () => {
         timeline.addKeyframe('exposure', 10, 0.5, 'linear')
         timeline.removeKeyframe('exposure', 10)
-        const track = timeline.tracks().find(t => t.parameterPath === 'exposure')
+        const track = timeline
+          .tracks()
+          .find((t) => t.parameterPath === 'exposure')
         expect(track).toBeDefined()
         expect(track?.keyframes).toHaveLength(0)
       })
 
       it('should do nothing if keyframe does not exist', () => {
         timeline.removeKeyframe('exposure', 10)
-        expect(timeline.tracks().find(t => t.parameterPath === 'exposure')).toBeUndefined()
+        expect(
+          timeline.tracks().find((t) => t.parameterPath === 'exposure'),
+        ).toBeUndefined()
       })
 
       it('should remove keyframe from track with multiple keyframes', () => {
@@ -77,7 +89,9 @@ describe('Timeline Utilities', () => {
         timeline.addKeyframe('exposure', 20, 0.75, 'easeInOut')
         timeline.addKeyframe('exposure', 30, 1.0, 'linear')
         timeline.removeKeyframe('exposure', 20)
-        const track = timeline.tracks().find(t => t.parameterPath === 'exposure')
+        const track = timeline
+          .tracks()
+          .find((t) => t.parameterPath === 'exposure')
         expect(track).toBeDefined()
         expect(track?.keyframes).toHaveLength(2)
         expect(track?.keyframes[0].frame).toBe(10)
@@ -87,7 +101,9 @@ describe('Timeline Utilities', () => {
       it('should filter out empty tracks', () => {
         timeline.addKeyframe('exposure', 10, 0.5, 'linear')
         timeline.removeKeyframe('exposure', 10)
-        expect(timeline.tracks().find(t => t.parameterPath === 'exposure')).toBeUndefined()
+        expect(
+          timeline.tracks().find((t) => t.parameterPath === 'exposure'),
+        ).toBeUndefined()
       })
     })
 
@@ -129,7 +145,7 @@ describe('Timeline Utilities', () => {
         timeline.addKeyframe('exposure', 20, 1.0, 'linear')
         const overlapping = timeline.getOverlappingKeyframes('exposure', 10)
         expect(overlapping).toHaveLength(2)
-        expect(overlapping.every(kf => kf.frame === 10)).toBe(true)
+        expect(overlapping.every((kf) => kf.frame === 10)).toBe(true)
       })
 
       it('should return empty array if no overlapping frames', () => {
@@ -149,17 +165,31 @@ describe('Timeline Utilities', () => {
     describe('addKeyframeWithOverlapCheck', () => {
       it('should return false and not add keyframe if overlap detected', () => {
         timeline.addKeyframe('exposure', 10, 0.5, 'linear')
-        const added = timeline.addKeyframeWithOverlapCheck('exposure', 10, 0.75, 'easeInOut')
+        const added = timeline.addKeyframeWithOverlapCheck(
+          'exposure',
+          10,
+          0.75,
+          'easeInOut',
+        )
         expect(added).toBe(false)
-        const track = timeline.tracks().find(t => t.parameterPath === 'exposure')
+        const track = timeline
+          .tracks()
+          .find((t) => t.parameterPath === 'exposure')
         expect(track?.keyframes).toHaveLength(1)
       })
 
       it('should return true and add keyframe if no overlap', () => {
         timeline.addKeyframe('exposure', 10, 0.5, 'linear')
-        const added = timeline.addKeyframeWithOverlapCheck('exposure', 20, 0.75, 'easeInOut')
+        const added = timeline.addKeyframeWithOverlapCheck(
+          'exposure',
+          20,
+          0.75,
+          'easeInOut',
+        )
         expect(added).toBe(true)
-        const track = timeline.tracks().find(t => t.parameterPath === 'exposure')
+        const track = timeline
+          .tracks()
+          .find((t) => t.parameterPath === 'exposure')
         expect(track?.keyframes).toHaveLength(2)
       })
     })
@@ -169,7 +199,9 @@ describe('Timeline Utilities', () => {
         timeline.addKeyframe('exposure', 15, 0.5, 'linear')
         const split = timeline.splitKeyframeAtFrame('exposure', 15, 10)
         expect(split).toBe(true)
-        const track = timeline.tracks().find(t => t.parameterPath === 'exposure')
+        const track = timeline
+          .tracks()
+          .find((t) => t.parameterPath === 'exposure')
         expect(track?.keyframes).toHaveLength(2)
         expect(track?.keyframes[0].frame).toBe(10)
         expect(track?.keyframes[1].frame).toBe(15)
@@ -259,28 +291,46 @@ describe('Timeline Utilities', () => {
 
       it('should apply mirrored value to target track', () => {
         timeline.addKeyframe('exposure', 45, 0.5, 'easeInOut')
-        const applied = timeline.applyMirroredValueFromTrack('exposure', 'vibrancy', 45)
+        const applied = timeline.applyMirroredValueFromTrack(
+          'exposure',
+          'vibrancy',
+          45,
+        )
         expect(applied).toBe(true)
-        const track = timeline.tracks().find(t => t.parameterPath === 'vibrancy')
+        const track = timeline
+          .tracks()
+          .find((t) => t.parameterPath === 'vibrancy')
         expect(track?.keyframes).toHaveLength(1)
         expect(track?.keyframes[0].frame).toBe(45)
         expect(track?.keyframes[0].value).toBe(0.5)
       })
 
       it('should return false if source keyframe does not exist', () => {
-        const applied = timeline.applyMirroredValueFromTrack('exposure', 'vibrancy', 45)
+        const applied = timeline.applyMirroredValueFromTrack(
+          'exposure',
+          'vibrancy',
+          45,
+        )
         expect(applied).toBe(false)
       })
 
       it('should return false if source value is boolean', () => {
         timeline.addKeyframe('colorInitMode', 45, 'colorInitZero', 'linear')
-        const applied = timeline.applyMirroredValueFromTrack('colorInitMode', 'drawMode', 45)
+        const applied = timeline.applyMirroredValueFromTrack(
+          'colorInitMode',
+          'drawMode',
+          45,
+        )
         expect(applied).toBe(false)
       })
 
       it('should return false if target track does not exist', () => {
         timeline.addKeyframe('exposure', 45, 0.5, 'linear')
-        const applied = timeline.applyMirroredValueFromTrack('exposure', 'nonexistent', 45)
+        const applied = timeline.applyMirroredValueFromTrack(
+          'exposure',
+          'nonexistent',
+          45,
+        )
         expect(applied).toBe(false)
       })
     })

@@ -1,12 +1,6 @@
 import { createSignal, Show } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
-import {
-  Cross,
-  Pause,
-  PlayPause,
-  SkipBack,
-  SkipForward,
-} from '@/icons'
+import { Cross, Pause, PlayPause, SkipBack, SkipForward } from '@/icons'
 import { Checkbox } from '../Checkbox/Checkbox'
 import { Slider } from '../Sliders/Slider'
 import { KeyframeEditor } from './KeyframeEditor'
@@ -25,7 +19,7 @@ export function TimelineSection({ onEnterAnimation }: TimelineSectionProps) {
   const isPlaying = timeline.isPlaying
 
   const setConfig = (updates: Partial<TimelineConfig>) => {
-    timeline.setConfig((prev) => ({ ...prev, ...updates } as TimelineConfig))
+    timeline.setConfig((prev) => ({ ...prev, ...updates }) as TimelineConfig)
   }
 
   return (
@@ -34,7 +28,7 @@ export function TimelineSection({ onEnterAnimation }: TimelineSectionProps) {
         <div class={ui.headerLeft}>
           <h3 class={ui.title}>Timeline</h3>
           <span class={ui.isPlayingIndicator} data-testid="timeline-playing">
-            {(isPlaying() ? '●' : '○')}
+            {isPlaying() ? '●' : '○'}
           </span>
         </div>
         <div class={ui.headerRight}>

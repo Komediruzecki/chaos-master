@@ -43,10 +43,10 @@ describe('CPU Flame Renderer', () => {
       expect(renderer.flameFunctions).toBeDefined()
     })
 
-    it('should render basic scene', async () => {
+    it('should render basic scene', () => {
       const renderer = new CPUFlameRenderer(sampleFlame)
 
-      const result = await renderer.render({
+      const result = renderer.render({
         width: 100,
         height: 100,
         quality: 10,
@@ -68,10 +68,10 @@ describe('CPU Flame Renderer', () => {
       expect(transforms.length).toBeGreaterThan(0)
     })
 
-    it('should handle empty canvas size', async () => {
+    it('should handle empty canvas size', () => {
       const renderer = new CPUFlameRenderer(sampleFlame)
 
-      const result = await renderer.render({
+      const result = renderer.render({
         width: 0,
         height: 0,
         quality: 10,
@@ -84,17 +84,17 @@ describe('CPU Flame Renderer', () => {
       expect(result.buckets.length).toBe(0)
     })
 
-    it('should scale output with canvas size', async () => {
+    it('should scale output with canvas size', () => {
       const renderer = new CPUFlameRenderer(sampleFlame)
 
-      const smallResult = await renderer.render({
+      const smallResult = renderer.render({
         width: 50,
         height: 50,
         quality: 10,
         pointCountPerBatch: 100,
       })
 
-      const largeResult = await renderer.render({
+      const largeResult = renderer.render({
         width: 100,
         height: 100,
         quality: 10,
@@ -102,15 +102,17 @@ describe('CPU Flame Renderer', () => {
       })
 
       // Larger canvas should have proportionally more buckets
-      expect(smallResult.buckets.length).toBeLessThan(largeResult.buckets.length)
+      expect(smallResult.buckets.length).toBeLessThan(
+        largeResult.buckets.length,
+      )
       expect(largeResult.buckets.length).toBe(100 * 100 * 3)
       expect(smallResult.buckets.length).toBe(50 * 50 * 3)
     })
   })
 
   describe('testCPURenderer', () => {
-    it('should return passed for valid render', async () => {
-      const result = await testCPURenderer(sampleFlame, {
+    it('should return passed for valid render', () => {
+      const result = testCPURenderer(sampleFlame, {
         width: 10,
         height: 10,
         quality: 5,
@@ -120,13 +122,13 @@ describe('CPU Flame Renderer', () => {
       expect(result.passed).toBe(true)
     })
 
-    it('should catch and report errors', async () => {
-      const invalidFlame: any = {
+    it('should catch and report errors', () => {
+      const invalidFlame: Record<string, unknown> = {
         renderSettings: {},
         transforms: {},
       }
 
-      const result = await testCPURenderer(invalidFlame, {
+      const result = testCPURenderer(invalidFlame, {
         width: 10,
         height: 10,
         quality: 5,
@@ -139,10 +141,10 @@ describe('CPU Flame Renderer', () => {
   })
 
   describe('Bucket Data Structure', () => {
-    it('should create valid bucket data', async () => {
+    it('should create valid bucket data', () => {
       const renderer = new CPUFlameRenderer(sampleFlame)
 
-      const result = await renderer.render({
+      const result = renderer.render({
         width: 10,
         height: 10,
         quality: 10,
@@ -162,8 +164,6 @@ describe('CPU Flame Renderer', () => {
     })
 
     it('should flatten and unflatten buckets correctly', () => {
-      const renderer = new CPUFlameRenderer(sampleFlame)
-
       // Simulate bucket data
       const testBucketsData = [
         { count: 1000, colorA: 500, colorB: 500 },
@@ -190,10 +190,10 @@ describe('CPU Flame Renderer', () => {
   })
 
   describe('Integration with WebGPU', () => {
-    it('should produce comparable results structure', async () => {
+    it('should produce comparable results structure', () => {
       const renderer = new CPUFlameRenderer(sampleFlame)
 
-      const cpuResult = await renderer.render({
+      const cpuResult = renderer.render({
         width: 50,
         height: 50,
         quality: 10,
@@ -210,17 +210,17 @@ describe('CPU Flame Renderer', () => {
       expect(cpuResult.buckets.length / 3).toBe(expectedBucketCount)
     })
 
-    it('should handle different quality levels', async () => {
+    it('should handle different quality levels', () => {
       const renderer = new CPUFlameRenderer(sampleFlame)
 
-      const lowQuality = await renderer.render({
+      const lowQuality = renderer.render({
         width: 50,
         height: 50,
         quality: 5,
         pointCountPerBatch: 50,
       })
 
-      const highQuality = await renderer.render({
+      const highQuality = renderer.render({
         width: 50,
         height: 50,
         quality: 50,
@@ -236,10 +236,10 @@ describe('CPU Flame Renderer', () => {
   })
 
   describe('Error Handling', () => {
-    it('should handle invalid canvas dimensions gracefully', async () => {
-      const renderer = new CPUFlameRenderer(sampleFlame)
+    it('should handle invalid canvas dimensions gracefully', () => {
+      const _renderer = new CPUFlameRenderer(sampleFlame)
 
-      const invalidResult = await renderer.render({
+      const invalidResult = _renderer.render({
         width: -10,
         height: 10,
         quality: 10,
@@ -250,10 +250,10 @@ describe('CPU Flame Renderer', () => {
       expect(invalidResult.buckets.length).toBeGreaterThanOrEqual(0)
     })
 
-    it('should handle zero point count', async () => {
-      const renderer = new CPUFlameRenderer(sampleFlame)
+    it('should handle zero point count', () => {
+      const _renderer = new CPUFlameRenderer(sampleFlame)
 
-      const result = await renderer.render({
+      const result = _renderer.render({
         width: 50,
         height: 50,
         quality: 0,

@@ -15,9 +15,7 @@ const cameraDefault: { zoom: number; position: [number, number] } = {
   zoom: 1,
   position: [0, 0],
 }
-const _edgeFadeColorDefault: [number, number, number, number] = [
-  0, 0, 0, 0.8,
-]
+const _edgeFadeColorDefault: [number, number, number, number] = [0, 0, 0, 0.8]
 const MAX_SKIP_ITERS_VALUE = 30
 const MIN_EXPOSURE_VALUE = -4
 const MAX_EXPOSURE_VALUE = 4
@@ -102,20 +100,9 @@ const RenderSettings = v.object({
     ),
     0.5,
   ),
-  palettePhase: v.optional(
-    v.pipe(
-      v.number(),
-      v.minValue(0),
-      v.maxValue(1),
-    ),
-    0,
-  ),
+  palettePhase: v.optional(v.pipe(v.number(), v.minValue(0), v.maxValue(1)), 0),
   paletteSpeed: v.optional(
-    v.pipe(
-      v.number(),
-      v.minValue(0),
-      v.maxValue(10),
-    ),
+    v.pipe(v.number(), v.minValue(0), v.maxValue(10)),
     0.5,
   ),
   backgroundColor: v.optional(
@@ -123,7 +110,12 @@ const RenderSettings = v.object({
   ),
   camera: v.optional(CameraObjSchema, cameraDefault),
   edgeFadeColor: v.optional(
-    v.tuple([ColorValueSchema, ColorValueSchema, ColorValueSchema, ColorValueSchema]),
+    v.tuple([
+      ColorValueSchema,
+      ColorValueSchema,
+      ColorValueSchema,
+      ColorValueSchema,
+    ]),
   ),
 })
 

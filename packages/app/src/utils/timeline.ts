@@ -1,4 +1,5 @@
 import { createSignal } from 'solid-js'
+import { clamp } from './easing'
 
 export type EasingCurve =
   | 'linear'
@@ -21,7 +22,12 @@ export interface FlameDescriptor {
     skipIters: number
     drawMode: 'light' | 'paint'
     colorInitMode: 'colorInitZero' | 'colorInitPosition'
-    pointInitMode: 'pointInitUnitDisk' | 'pointInitGaussianDisk' | 'pointInitUnitSquare' | 'pointInitModeGaussianSquare' | 'pointInitModeGaussianCircle'
+    pointInitMode:
+      | 'pointInitUnitDisk'
+      | 'pointInitGaussianDisk'
+      | 'pointInitUnitSquare'
+      | 'pointInitModeGaussianSquare'
+      | 'pointInitModeGaussianCircle'
     vibrancy: number
     backgroundColor?: [number, number, number]
     camera?: {
@@ -85,10 +91,18 @@ function defaultConfig(): TimelineConfig {
 export function resolveKeyframeValue(
   keyframes: KeyframeData[],
   frame: number,
-): number | string | boolean | [number, number, number] | null | [number, number, number, number] {
+):
+  | number
+  | string
+  | boolean
+  | [number, number, number]
+  | null
+  | [number, number, number, number] {
   if (keyframes.length === 0) return null
 
-  const sorted = [...keyframes].sort((a: KeyframeData, b: KeyframeData) => a.frame - b.frame)
+  const sorted = [...keyframes].sort(
+    (a: KeyframeData, b: KeyframeData) => a.frame - b.frame,
+  )
 
   // Before first keyframe
   const firstKf = sorted[0]!
@@ -159,11 +173,17 @@ export function createTimelineState() {
   function addKeyframe(
     parameterPath: string,
     frame: number,
-    value: number | string | [number, number, number] | [number, number, number, number],
+    value:
+      | number
+      | string
+      | [number, number, number]
+      | [number, number, number, number],
     easing?: EasingCurve,
   ) {
     setTracks((prev: TimelineTrack[]) => {
-      const existingTrack = prev.find((t: TimelineTrack) => t.parameterPath === parameterPath)
+      const existingTrack = prev.find(
+        (t: TimelineTrack) => t.parameterPath === parameterPath,
+      )
       if (existingTrack) {
         const existingKf = existingTrack.keyframes.find(
           (kf: KeyframeData) => kf.frame === frame,
@@ -188,7 +208,9 @@ export function createTimelineState() {
           t.parameterPath === parameterPath
             ? {
                 ...t,
-                keyframes: t.keyframes.filter((kf: KeyframeData) => kf.frame !== frame),
+                keyframes: t.keyframes.filter(
+                  (kf: KeyframeData) => kf.frame !== frame,
+                ),
               }
             : t,
         )
@@ -199,7 +221,9 @@ export function createTimelineState() {
   function getKeysForFrame(frame: number): Record<string, boolean> {
     const result: Record<string, boolean> = {}
     for (const track of tracks()) {
-      const hasKf = track.keyframes.some((kf: KeyframeData) => kf.frame === frame)
+      const hasKf = track.keyframes.some(
+        (kf: KeyframeData) => kf.frame === frame,
+      )
       if (hasKf) {
         result[track.parameterPath] = true
       }
@@ -209,7 +233,8 @@ export function createTimelineState() {
 
   function hasKeyframeAtFrame(parameterPath: string, frame: number): boolean {
     const track = tracks().find(
-      (t: TimelineTrack): t is TimelineTrack => t.parameterPath === parameterPath,
+      (t: TimelineTrack): t is TimelineTrack =>
+        t.parameterPath === parameterPath,
     )
     return (
       track?.keyframes.some((kf: KeyframeData) => kf.frame === frame) ?? false
@@ -220,9 +245,13 @@ export function createTimelineState() {
    * Get all keyframes at a specific frame for a track
    * Returns the keyframe at that frame or undefined
    */
-  function getKeyframeAtFrame(parameterPath: string, frame: number): KeyframeData | undefined {
+  function getKeyframeAtFrame(
+    parameterPath: string,
+    frame: number,
+  ): KeyframeData | undefined {
     const track = tracks().find(
-      (t: TimelineTrack): t is TimelineTrack => t.parameterPath === parameterPath,
+      (t: TimelineTrack): t is TimelineTrack =>
+        t.parameterPath === parameterPath,
     )
     if (!track) return undefined
     return track.keyframes.find((kf: KeyframeData) => kf.frame === frame)
@@ -232,9 +261,13 @@ export function createTimelineState() {
    * Get keyframes that would overlap if added at a specific frame
    * This helps detect when creating multiple keyframes at the same frame
    */
-  function getOverlappingKeyframes(parameterPath: string, frame: number): KeyframeData[] {
+  function getOverlappingKeyframes(
+    parameterPath: string,
+    frame: number,
+  ): KeyframeData[] {
     const track = tracks().find(
-      (t: TimelineTrack): t is TimelineTrack => t.parameterPath === parameterPath,
+      (t: TimelineTrack): t is TimelineTrack =>
+        t.parameterPath === parameterPath,
     )
     if (!track) return []
     return track.keyframes.filter((kf: KeyframeData) => kf.frame === frame)
@@ -247,7 +280,11 @@ export function createTimelineState() {
   function addKeyframeWithOverlapCheck(
     parameterPath: string,
     frame: number,
-    value: number | string | [number, number, number] | [number, number, number, number],
+    value:
+      | number
+      | string
+      | [number, number, number]
+      | [number, number, number, number],
     easing?: EasingCurve,
   ): boolean {
     const existingKeyframes = getOverlappingKeyframes(parameterPath, frame)
@@ -269,7 +306,9 @@ export function createTimelineState() {
           t.parameterPath === parameterPath
             ? {
                 ...t,
-                keyframes: t.keyframes.filter((kf: KeyframeData) => kf.frame !== frame),
+                keyframes: t.keyframes.filter(
+                  (kf: KeyframeData) => kf.frame !== frame,
+                ),
               }
             : t,
         )
@@ -280,9 +319,13 @@ export function createTimelineState() {
   /**
    * Find the closest keyframe before or at a given frame
    */
-  function findClosestKeyframeBeforeFrame(parameterPath: string, frame: number): KeyframeData | undefined {
+  function findClosestKeyframeBeforeFrame(
+    parameterPath: string,
+    frame: number,
+  ): KeyframeData | undefined {
     const track = tracks().find(
-      (t: TimelineTrack): t is TimelineTrack => t.parameterPath === parameterPath,
+      (t: TimelineTrack): t is TimelineTrack =>
+        t.parameterPath === parameterPath,
     )
     if (!track) return undefined
 
@@ -303,12 +346,20 @@ export function createTimelineState() {
     splitFrame: number,
   ): boolean {
     const track = tracks().find(
-      (t: TimelineTrack): t is TimelineTrack => t.parameterPath === parameterPath,
+      (t: TimelineTrack): t is TimelineTrack =>
+        t.parameterPath === parameterPath,
     )
     if (!track) return false
 
-    const keyframe = track.keyframes.find((kf: KeyframeData) => kf.frame === originalFrame)
-    if (!keyframe || keyframe.value === null || typeof keyframe.value === 'boolean') return false
+    const keyframe = track.keyframes.find(
+      (kf: KeyframeData) => kf.frame === originalFrame,
+    )
+    if (
+      !keyframe ||
+      keyframe.value === null ||
+      typeof keyframe.value === 'boolean'
+    )
+      return false
 
     // Remove the original keyframe
     removeKeyframesAtFrame(parameterPath, originalFrame)
@@ -332,10 +383,14 @@ export function createTimelineState() {
     const _frameRange = currentConfig.endFrame - currentConfig.startFrame
 
     // Calculate mirrored frame (if center is startFrame)
-    const mirroredFrame = currentConfig.startFrame + (currentConfig.endFrame - frame)
+    const mirroredFrame =
+      currentConfig.startFrame + (currentConfig.endFrame - frame)
 
     // Check if mirrored frame is within valid range
-    if (mirroredFrame < currentConfig.startFrame || mirroredFrame > currentConfig.endFrame) {
+    if (
+      mirroredFrame < currentConfig.startFrame ||
+      mirroredFrame > currentConfig.endFrame
+    ) {
       return null
     }
 
@@ -352,24 +407,38 @@ export function createTimelineState() {
     frame: number,
   ): boolean {
     const sourceTrack = tracks().find(
-      (t: TimelineTrack): t is TimelineTrack => t.parameterPath === sourceParameterPath,
+      (t: TimelineTrack): t is TimelineTrack =>
+        t.parameterPath === sourceParameterPath,
     )
     if (!sourceTrack) return false
 
     const targetTrack = tracks().find(
-      (t: TimelineTrack): t is TimelineTrack => t.parameterPath === targetParameterPath,
+      (t: TimelineTrack): t is TimelineTrack =>
+        t.parameterPath === targetParameterPath,
     )
     if (!targetTrack) return false
 
     // Get keyframe value at source frame
-    const keyframe = sourceTrack.keyframes.find((kf: KeyframeData) => kf.frame === frame)
-    if (!keyframe || keyframe.value === null || typeof keyframe.value === 'boolean') return false
+    const keyframe = sourceTrack.keyframes.find(
+      (kf: KeyframeData) => kf.frame === frame,
+    )
+    if (
+      !keyframe ||
+      keyframe.value === null ||
+      typeof keyframe.value === 'boolean'
+    )
+      return false
 
     // Add keyframe to target track at mirrored frame with same easing
     const mirroredFrame = mirrorKeyframeToOpposite(sourceParameterPath, frame)
     if (mirroredFrame === null) return false
 
-    addKeyframe(targetParameterPath, mirroredFrame, keyframe.value, keyframe.easing)
+    addKeyframe(
+      targetParameterPath,
+      mirroredFrame,
+      keyframe.value,
+      keyframe.easing,
+    )
     return true
   }
 
@@ -389,9 +458,16 @@ export function createTimelineState() {
   function resolveValueAtPath(
     parameterPath: string,
     frame: number,
-  ): number | string | boolean | [number, number, number] | [number, number, number, number] | null {
+  ):
+    | number
+    | string
+    | boolean
+    | [number, number, number]
+    | [number, number, number, number]
+    | null {
     const track = tracks().find(
-      (t: TimelineTrack): t is TimelineTrack => t.parameterPath === parameterPath,
+      (t: TimelineTrack): t is TimelineTrack =>
+        t.parameterPath === parameterPath,
     )
     if (!track) return null
     return resolveKeyframeValue(track.keyframes, frame)
@@ -465,7 +541,9 @@ export function createTimelineState() {
     const frame = currentFrame()
 
     // Animate camera position
-    const xTrack = tracks().find((t: TimelineTrack) => t.parameterPath === 'camera.x')
+    const xTrack = tracks().find(
+      (t: TimelineTrack) => t.parameterPath === 'camera.x',
+    )
     if (xTrack) {
       const value = resolveKeyframeValue(xTrack.keyframes, frame)
       if (
@@ -477,7 +555,9 @@ export function createTimelineState() {
       }
     }
 
-    const yTrack = tracks().find((t: TimelineTrack) => t.parameterPath === 'camera.y')
+    const yTrack = tracks().find(
+      (t: TimelineTrack) => t.parameterPath === 'camera.y',
+    )
     if (yTrack) {
       const value = resolveKeyframeValue(yTrack.keyframes, frame)
       if (
@@ -490,7 +570,9 @@ export function createTimelineState() {
     }
 
     // Animate camera rotation
-    const rotationTrack = tracks().find((t: TimelineTrack) => t.parameterPath === 'camera.rotation')
+    const rotationTrack = tracks().find(
+      (t: TimelineTrack) => t.parameterPath === 'camera.rotation',
+    )
     if (rotationTrack) {
       const value = resolveKeyframeValue(rotationTrack.keyframes, frame)
       if (
@@ -503,7 +585,9 @@ export function createTimelineState() {
     }
 
     // Animate camera zoom
-    const zoomTrack = tracks().find((t: TimelineTrack) => t.parameterPath === 'camera.zoom')
+    const zoomTrack = tracks().find(
+      (t: TimelineTrack) => t.parameterPath === 'camera.zoom',
+    )
     if (zoomTrack) {
       const value = resolveKeyframeValue(zoomTrack.keyframes, frame)
       if (
@@ -516,7 +600,9 @@ export function createTimelineState() {
     }
 
     // Animate flame parameters
-    const exposureTrack = tracks().find((t: TimelineTrack) => t.parameterPath === 'exposure')
+    const exposureTrack = tracks().find(
+      (t: TimelineTrack) => t.parameterPath === 'exposure',
+    )
     if (exposureTrack) {
       const value = resolveKeyframeValue(exposureTrack.keyframes, frame)
       if (value !== null && typeof value === 'number') {
@@ -524,7 +610,9 @@ export function createTimelineState() {
       }
     }
 
-    const skipItersTrack = tracks().find((t: TimelineTrack) => t.parameterPath === 'skipIters')
+    const skipItersTrack = tracks().find(
+      (t: TimelineTrack) => t.parameterPath === 'skipIters',
+    )
     if (skipItersTrack) {
       const value = resolveKeyframeValue(skipItersTrack.keyframes, frame)
       if (value !== null && typeof value === 'number') {
@@ -532,7 +620,9 @@ export function createTimelineState() {
       }
     }
 
-    const vibrancyTrack = tracks().find((t: TimelineTrack) => t.parameterPath === 'vibrancy')
+    const vibrancyTrack = tracks().find(
+      (t: TimelineTrack) => t.parameterPath === 'vibrancy',
+    )
     if (vibrancyTrack) {
       const value = resolveKeyframeValue(vibrancyTrack.keyframes, frame)
       if (value !== null && typeof value === 'number') {
@@ -540,7 +630,9 @@ export function createTimelineState() {
       }
     }
 
-    const drawModeTrack = tracks().find((t: TimelineTrack) => t.parameterPath === 'drawMode')
+    const drawModeTrack = tracks().find(
+      (t: TimelineTrack) => t.parameterPath === 'drawMode',
+    )
     if (drawModeTrack) {
       const value = resolveKeyframeValue(drawModeTrack.keyframes, frame)
       if (value !== null && typeof value === 'string') {
@@ -549,7 +641,9 @@ export function createTimelineState() {
     }
 
     // Animate palette parameters
-    const palettePhaseTrack = tracks().find((t: TimelineTrack) => t.parameterPath === 'palettePhase')
+    const palettePhaseTrack = tracks().find(
+      (t: TimelineTrack) => t.parameterPath === 'palettePhase',
+    )
     if (palettePhaseTrack) {
       const value = resolveKeyframeValue(palettePhaseTrack.keyframes, frame)
       if (value !== null && typeof value === 'number') {
@@ -557,7 +651,9 @@ export function createTimelineState() {
       }
     }
 
-    const paletteSpeedTrack = tracks().find((t: TimelineTrack) => t.parameterPath === 'paletteSpeed')
+    const paletteSpeedTrack = tracks().find(
+      (t: TimelineTrack) => t.parameterPath === 'paletteSpeed',
+    )
     if (paletteSpeedTrack) {
       const value = resolveKeyframeValue(paletteSpeedTrack.keyframes, frame)
       if (value !== null && typeof value === 'number') {
@@ -577,10 +673,19 @@ export function createTimelineState() {
       distortion?: number
     }> = {}
     const variationParamPaths = [
-      'waveX', 'waveY', 'intensity', 'periodicity', 'octaves', 'oscillationSpeed', 'rippleRadius', 'distortion'
+      'waveX',
+      'waveY',
+      'intensity',
+      'periodicity',
+      'octaves',
+      'oscillationSpeed',
+      'rippleRadius',
+      'distortion',
     ]
     for (const paramPath of variationParamPaths) {
-      const track = tracks().find((t: TimelineTrack) => t.parameterPath === paramPath)
+      const track = tracks().find(
+        (t: TimelineTrack) => t.parameterPath === paramPath,
+      )
       if (track) {
         const value = resolveKeyframeValue(track.keyframes, frame)
         if (value !== null && typeof value === 'number') {
@@ -589,7 +694,8 @@ export function createTimelineState() {
           if (paramPath === 'intensity') variationParams.intensity = value
           if (paramPath === 'periodicity') variationParams.periodicity = value
           if (paramPath === 'octaves') variationParams.octaves = value
-          if (paramPath === 'oscillationSpeed') variationParams.oscillationSpeed = value
+          if (paramPath === 'oscillationSpeed')
+            variationParams.oscillationSpeed = value
           if (paramPath === 'rippleRadius') variationParams.rippleRadius = value
           if (paramPath === 'distortion') variationParams.distortion = value
         }
@@ -640,7 +746,11 @@ export function addKeyframeToTimeline(
   timeline: TimelineState,
   parameterPath: string,
   frame: number,
-  value: number | string | [number, number, number] | [number, number, number, number],
+  value:
+    | number
+    | string
+    | [number, number, number]
+    | [number, number, number, number],
   easing: EasingCurve = 'linear',
 ) {
   timeline.addKeyframe(parameterPath, frame, value, easing)
@@ -659,10 +769,19 @@ export function addKeyframeWithOverlapCheckToTimeline(
   timeline: TimelineState,
   parameterPath: string,
   frame: number,
-  value: number | string | [number, number, number] | [number, number, number, number],
+  value:
+    | number
+    | string
+    | [number, number, number]
+    | [number, number, number, number],
   easing: EasingCurve = 'linear',
 ): boolean {
-  return timeline.addKeyframeWithOverlapCheck(parameterPath, frame, value, easing)
+  return timeline.addKeyframeWithOverlapCheck(
+    parameterPath,
+    frame,
+    value,
+    easing,
+  )
 }
 
 /**
@@ -746,7 +865,11 @@ export function applyMirroredValueFromTrackToTimeline(
   targetParameterPath: string,
   frame: number,
 ): boolean {
-  return timeline.applyMirroredValueFromTrack(sourceParameterPath, targetParameterPath, frame)
+  return timeline.applyMirroredValueFromTrack(
+    sourceParameterPath,
+    targetParameterPath,
+    frame,
+  )
 }
 
 export type TimelineState = ReturnType<typeof createTimelineState>
@@ -762,7 +885,9 @@ export function applyTimelineToFlame(
   const frame = timeline.currentFrame()
 
   // Animate camera position
-  const xTrack = timeline.tracks().find((t: TimelineTrack) => t.parameterPath === 'camera.x')
+  const xTrack = timeline
+    .tracks()
+    .find((t: TimelineTrack) => t.parameterPath === 'camera.x')
   if (xTrack) {
     const value = resolveKeyframeValue(xTrack.keyframes, frame)
     if (
@@ -774,7 +899,9 @@ export function applyTimelineToFlame(
     }
   }
 
-  const yTrack = timeline.tracks().find((t: TimelineTrack) => t.parameterPath === 'camera.y')
+  const yTrack = timeline
+    .tracks()
+    .find((t: TimelineTrack) => t.parameterPath === 'camera.y')
   if (yTrack) {
     const value = resolveKeyframeValue(yTrack.keyframes, frame)
     if (
@@ -890,7 +1017,7 @@ export function applyTimelineToFlame(
     const value = resolveKeyframeValue(edgeFadeColorTrack.keyframes, frame)
     if (value !== null && Array.isArray(value) && value.length === 4) {
       const typed = value as unknown as [number, number, number, number]
-      (flame as unknown as Record<string, unknown>).edgeFadeColor = typed
+      ;(flame as unknown as Record<string, unknown>).edgeFadeColor = typed
     }
   }
 }

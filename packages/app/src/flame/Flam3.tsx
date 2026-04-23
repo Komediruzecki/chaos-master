@@ -1,7 +1,6 @@
 import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js'
 import { arrayOf, vec2u, vec3f, vec4f } from 'typegpu/data'
 import { clamp } from 'typegpu/std'
-import { StorageFlag } from 'typegpu/core'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { setRenderTimings } from '@/flame/renderStats'
 import { createTimestampQuery } from '@/utils/createTimestampQuery'
@@ -16,12 +15,12 @@ import { drawModeToImplFn } from './drawMode'
 import { createIFSPipeline } from './ifsPipeline'
 import { backgroundColorDefault, backgroundColorDefaultWhite, } from './schema/flameSchema'
 import { Bucket } from './types'
+import type { TgpuBuffer, WgslArray } from 'typegpu'
 import type { v4f } from 'typegpu/data'
 import type { Palette } from './colorMap'
 import type { FlameDescriptor } from './schema/flameSchema'
 import type { ExportImageType } from '@/App'
 import type { FlameDescriptor as TimelineFlameDescriptor } from '@/utils/timeline'
-import type { TgpuBuffer, WgslArray } from 'typegpu'
 
 const { sqrt, floor } = Math
 
@@ -139,8 +138,12 @@ export function Flam3(props: Flam3Props) {
     }
 
     const newTex = {
-      accumulationBuffer: root.createBuffer(arrayOf(Bucket, width * height)).$usage('storage'),
-      postprocessBuffer: root.createBuffer(arrayOf(Bucket, width * height)).$usage('storage'),
+      accumulationBuffer: root
+        .createBuffer(arrayOf(Bucket, width * height))
+        .$usage('storage'),
+      postprocessBuffer: root
+        .createBuffer(arrayOf(Bucket, width * height))
+        .$usage('storage'),
       textureSize: [width, height] as const,
     }
 
@@ -171,13 +174,19 @@ export function Flam3(props: Flam3Props) {
       return undefined
     }
     const { textureSize, postprocessBuffer, accumulationBuffer } = o
-    const typedPostprocessBuffer = postprocessBuffer as TgpuBuffer<WgslArray<typeof Bucket>> & StorageFlag
-    const typedAccumulationBuffer = accumulationBuffer as TgpuBuffer<WgslArray<typeof Bucket>> & StorageFlag
+    const typedPostprocessBuffer = postprocessBuffer as TgpuBuffer<
+      WgslArray<typeof Bucket>
+    >
+    const typedAccumulationBuffer = accumulationBuffer as TgpuBuffer<
+      WgslArray<typeof Bucket>
+    >
     return createColorGradingPipeline(
       root,
       colorGradingUniforms,
       textureSize,
-      props.adaptiveFilterEnabled ? typedPostprocessBuffer : typedAccumulationBuffer,
+      props.adaptiveFilterEnabled
+        ? typedPostprocessBuffer
+        : typedAccumulationBuffer,
       canvasFormat,
       drawModeToImplFn[props.flameDescriptor.renderSettings.drawMode],
       props.palette,
@@ -190,8 +199,12 @@ export function Flam3(props: Flam3Props) {
       return undefined
     }
     const { textureSize, accumulationBuffer, postprocessBuffer } = o
-    const typedAccumulationBuffer = accumulationBuffer as TgpuBuffer<WgslArray<typeof Bucket>> & StorageFlag
-    const typedPostprocessBuffer = postprocessBuffer as TgpuBuffer<WgslArray<typeof Bucket>> & StorageFlag
+    const typedAccumulationBuffer = accumulationBuffer as TgpuBuffer<
+      WgslArray<typeof Bucket>
+    >
+    const _typedPostprocessBuffer = postprocessBuffer as TgpuBuffer<
+      WgslArray<typeof Bucket>
+    >
     return createBlurPipeline(
       root,
       textureSize,
@@ -252,8 +265,12 @@ export function Flam3(props: Flam3Props) {
     const { textureSize, accumulationBuffer, postprocessBuffer } = tex
 
     // Add type assertions to satisfy typegpu's strict buffer typing
-    const typedAccumulationBuffer = accumulationBuffer as TgpuBuffer<WgslArray<typeof Bucket>> & StorageFlag
-    const typedPostprocessBuffer = postprocessBuffer as TgpuBuffer<WgslArray<typeof Bucket>> & StorageFlag
+    const typedAccumulationBuffer = accumulationBuffer as TgpuBuffer<
+      WgslArray<typeof Bucket>
+    >
+    const _typedPostprocessBuffer = postprocessBuffer as TgpuBuffer<
+      WgslArray<typeof Bucket>
+    >
 
     const ifsPipeline = createIFSPipeline(
       root,
@@ -392,7 +409,13 @@ export function Flam3(props: Flam3Props) {
           .then(() => {
             const currentBuffers = { accumulationBuffer, postprocessBuffer }
             const cleanupSet = buffersToCleanup()
-            setBuffersToCleanup(new Set([...cleanupSet, currentBuffers.accumulationBuffer, currentBuffers.postprocessBuffer]))
+            setBuffersToCleanup(
+              new Set([
+                ...cleanupSet,
+                currentBuffers.accumulationBuffer,
+                currentBuffers.postprocessBuffer,
+              ]),
+            )
             timestampQuery.read(frameId).catch(() => {})
           })
           .catch(() => {})

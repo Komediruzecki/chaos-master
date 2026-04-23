@@ -1,9 +1,6 @@
 import { createEffect, createMemo, createSignal } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
-import {
-  Cross,
-  Redo,
-} from '@/icons'
+import { Cross, Redo } from '@/icons'
 import { addKeyframeToTimeline } from '@/utils/timeline'
 import ui from './KeyframeEditor.module.css'
 import type { EasingCurve } from '@/flame/schema/timeline'
@@ -16,7 +13,8 @@ export function KeyframeEditor() {
 
   const [selectedPath, setSelectedPath] = createSignal('exposure')
   const [keyframeValue, setKeyframeValue] = createSignal('0.25')
-  const [interpolationMode, setInterpolationMode] = createSignal<EasingCurve>('linear')
+  const [interpolationMode, setInterpolationMode] =
+    createSignal<EasingCurve>('linear')
 
   const currentPath = () => selectedPath()
   const track = createMemo(() => {
@@ -37,7 +35,20 @@ export function KeyframeEditor() {
   // Check if current path expects a number or string
   const isNumberValue = (): boolean => {
     const path = currentPath()
-    return ['exposure', 'skipIters', 'vibrancy', 'paletteSpeed', 'waveX', 'waveY', 'intensity', 'periodicity', 'octaves', 'oscillationSpeed', 'rippleRadius', 'distortion'].includes(path)
+    return [
+      'exposure',
+      'skipIters',
+      'vibrancy',
+      'paletteSpeed',
+      'waveX',
+      'waveY',
+      'intensity',
+      'periodicity',
+      'octaves',
+      'oscillationSpeed',
+      'rippleRadius',
+      'distortion',
+    ].includes(path)
   }
 
   // Check if current path expects an array value (like backgroundColor, edgeFadeColor)
@@ -60,11 +71,22 @@ export function KeyframeEditor() {
   // Check if current path expects a variation parameter
   const isVariationParam = (): boolean => {
     const path = currentPath()
-    return ['waveX', 'waveY', 'intensity', 'periodicity', 'octaves', 'oscillationSpeed', 'rippleRadius', 'distortion'].includes(path)
+    return [
+      'waveX',
+      'waveY',
+      'intensity',
+      'periodicity',
+      'octaves',
+      'oscillationSpeed',
+      'rippleRadius',
+      'distortion',
+    ].includes(path)
   }
 
   // Parse array value from input string
-  const parseArrayValue = (input: string): [number, number, number] | [number, number, number, number] | null => {
+  const parseArrayValue = (
+    input: string,
+  ): [number, number, number] | [number, number, number, number] | null => {
     try {
       const parts = input.split(',').map((s) => parseFloat(s.trim()))
       if (parts.length === 3) {
@@ -105,7 +127,13 @@ export function KeyframeEditor() {
       keyValue = Number(value)
     }
 
-    addKeyframeToTimeline(timeline, currentPath(), currentFrame(), keyValue, interpolationMode())
+    addKeyframeToTimeline(
+      timeline,
+      currentPath(),
+      currentFrame(),
+      keyValue,
+      interpolationMode(),
+    )
   }
 
   // Remove keyframe at current frame
@@ -115,11 +143,22 @@ export function KeyframeEditor() {
 
   // Duplicate keyframe to next frame
   const handleDuplicateKeyframe = () => {
-    const currentKf = track()?.keyframes.find((kf: KeyframeData) => kf.frame === currentFrame())
-    if (!currentKf || currentKf.value === null || typeof currentKf.value === 'boolean') return
+    const currentKf = track()?.keyframes.find(
+      (kf: KeyframeData) => kf.frame === currentFrame(),
+    )
+    if (
+      !currentKf ||
+      currentKf.value === null ||
+      typeof currentKf.value === 'boolean'
+    )
+      return
 
     const nextFrame = currentFrame() + 1
-    let keyValue: string | number | [number, number, number] | [number, number, number, number] = currentKf.value
+    let keyValue:
+      | string
+      | number
+      | [number, number, number]
+      | [number, number, number, number] = currentKf.value
 
     if (isArrayValue()) {
       const parsed = parseArrayValue(String(currentKf.value))
@@ -128,13 +167,23 @@ export function KeyframeEditor() {
       keyValue = Number(currentKf.value)
     }
 
-    addKeyframeToTimeline(timeline, currentPath(), nextFrame, keyValue, currentKf.easing)
+    addKeyframeToTimeline(
+      timeline,
+      currentPath(),
+      nextFrame,
+      keyValue,
+      currentKf.easing,
+    )
   }
 
   // Freeze keyframe (copy current value to next frame)
   const handleFreezeKeyframe = () => {
     const nextFrame = currentFrame() + 1
-    let keyValue: string | number | [number, number, number] | [number, number, number, number] = keyframeValue()
+    let keyValue:
+      | string
+      | number
+      | [number, number, number]
+      | [number, number, number, number] = keyframeValue()
 
     if (isArrayValue()) {
       const parsed = parseArrayValue(keyframeValue())
@@ -143,7 +192,13 @@ export function KeyframeEditor() {
       keyValue = Number(keyframeValue())
     }
 
-    addKeyframeToTimeline(timeline, currentPath(), nextFrame, keyValue, interpolationMode())
+    addKeyframeToTimeline(
+      timeline,
+      currentPath(),
+      nextFrame,
+      keyValue,
+      interpolationMode(),
+    )
   }
 
   const hasKeyframeAtFrame = (): boolean => {
@@ -176,7 +231,9 @@ export function KeyframeEditor() {
           <option value="drawMode">Render - Draw Mode</option>
           <option value="colorInitMode">Render - Color Init Mode</option>
           <option value="pointInitMode">Render - Point Init Mode</option>
-          <option value="backgroundColor">Render - Background Color (RGB)</option>
+          <option value="backgroundColor">
+            Render - Background Color (RGB)
+          </option>
           <option value="edgeFadeColor">Render - Edge Fade Color (RGBA)</option>
           <option value="camera.x">Camera - X Position</option>
           <option value="camera.y">Camera - Y Position</option>
@@ -187,7 +244,9 @@ export function KeyframeEditor() {
           <option value="intensity">Variation - Intensity</option>
           <option value="periodicity">Variation - Periodicity</option>
           <option value="octaves">Variation - Octaves</option>
-          <option value="oscillationSpeed">Variation - Oscillation Speed</option>
+          <option value="oscillationSpeed">
+            Variation - Oscillation Speed
+          </option>
           <option value="rippleRadius">Variation - Ripple Radius</option>
           <option value="distortion">Variation - Distortion</option>
         </select>
@@ -232,7 +291,9 @@ export function KeyframeEditor() {
             <label>Interpolation</label>
             <select
               value={interpolationMode()}
-              onChange={(e) => setInterpolationMode(e.currentTarget.value as EasingCurve)}
+              onChange={(e) =>
+                setInterpolationMode(e.currentTarget.value as EasingCurve)
+              }
               data-testid="interpolation-select"
             >
               <option value="linear">Linear</option>

@@ -5,7 +5,7 @@ import type { JSX } from 'solid-js'
 
 export type TimelineContextValue = ReturnType<typeof createTimelineState>
 
-const TimelineContext = createContext<TimelineContextValue>()
+export const TimelineContext = createContext<TimelineContextValue>()
 
 export const TimelineContextProvider = TimelineContext.Provider
 
