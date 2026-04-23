@@ -216,6 +216,123 @@ export function createTimelineState() {
     )
   }
 
+  /**
+   * Get all keyframes at a specific frame for a track
+   * Returns the keyframe at that frame or undefined
+   */
+  function getKeyframeAtFrame(parameterPath: string, frame: number): KeyframeData | undefined {
+    const track = tracks().find(
+      (t: TimelineTrack): t is TimelineTrack => t.parameterPath === parameterPath,
+    )
+    if (!track) return undefined
+    return track.keyframes.find((kf: KeyframeData) => kf.frame === frame)
+  }
+
+  /**
+   * Get keyframes that would overlap if added at a specific frame
+   * This helps detect when creating multiple keyframes at the same frame
+   */
+  function getOverlappingKeyframes(parameterPath: string, frame: number): KeyframeData[] {
+    const track = tracks().find(
+      (t: TimelineTrack): t is TimelineTrack => t.parameterPath === parameterPath,
+    )
+    if (!track) return []
+    return track.keyframes.filter((kf: KeyframeData) => kf.frame === frame)
+  }
+
+  /**
+   * Handle keyframe overlap - warn if adding a keyframe at a frame with existing keyframes
+   * Returns true if operation was successful, false if duplicate was detected
+   */
+  function addKeyframeWithOverlapCheck(
+    parameterPath: string,
+    frame: number,
+    value: number | string | [number, number, number] | [number, number, number, number],
+    easing?: EasingCurve,
+  ): boolean {
+    const existingKeyframes = getOverlappingKeyframes(parameterPath, frame)
+    if (existingKeyframes.length > 0) {
+      return false // Update in place instead
+    }
+
+    addKeyframe(parameterPath, frame, value, easing)
+    return true
+  }
+
+  /**
+   * Remove all keyframes at a specific frame for a track
+   */
+  function removeKeyframesAtFrame(parameterPath: string, frame: number): void {
+    setTracks((prev: TimelineTrack[]) =>
+      prev
+        .map((t: TimelineTrack) =>
+          t.parameterPath === parameterPath
+            ? {
+                ...t,
+                keyframes: t.keyframes.filter((kf: KeyframeData) => kf.frame !== frame),
+              }
+            : t,
+        )
+        .filter((t: TimelineTrack) => t.keyframes.length > 0),
+    )
+  }
+
+  /**
+   * Find the closest keyframe before or at a given frame
+   */
+  function findClosestKeyframeBeforeFrame(parameterPath: string, frame: number): KeyframeData | undefined {
+    const track = tracks().find(
+      (t: TimelineTrack): t is TimelineTrack => t.parameterPath === parameterPath,
+    )
+    if (!track) return undefined
+
+    const validKeyframes = track.keyframes
+      .filter((kf: KeyframeData) => kf.frame <= frame)
+      .sort((a: KeyframeData, b: KeyframeData) => b.frame - a.frame)
+
+    return validKeyframes[0]
+  }
+
+  /**
+   * Split a keyframe into two at a specified frame
+   * Keeps the first keyframe value, copies to second with updated frame number
+   */
+  function splitKeyframeAtFrame(
+    parameterPath: string,
+    originalFrame: number,
+    splitFrame: number,
+  ): boolean {
+    const track = tracks().find(
+      (t: TimelineTrack): t is TimelineTrack => t.parameterPath === parameterPath,
+    )
+    if (!track) return false
+
+    const keyframe = track.keyframes.find((kf: KeyframeData) => kf.frame === originalFrame)
+    if (!keyframe || keyframe.value === null) return false
+
+    // Remove the original keyframe
+    removeKeyframesAtFrame(parameterPath, originalFrame)
+
+    // Add new keyframes at split positions (only if value is not null)
+    addKeyframe(parameterPath, originalFrame, keyframe.value, keyframe.easing)
+    addKeyframe(parameterPath, splitFrame, keyframe.value, keyframe.easing)
+
+    return true
+  }
+
+  /**
+   * Check if multiple tracks have keyframes at the same frame
+   */
+  function getTracksWithFrameOverlap(frame: number): string[] {
+    const result: string[] = []
+    for (const track of tracks()) {
+      if (track.keyframes.some((kf: KeyframeData) => kf.frame === frame)) {
+        result.push(track.parameterPath)
+      }
+    }
+    return result
+  }
+
   function resolveValueAtPath(
     parameterPath: string,
     frame: number,
@@ -392,6 +509,13 @@ export function createTimelineState() {
     removeKeyframe,
     getKeysForFrame,
     hasKeyframeAtFrame,
+    getKeyframeAtFrame,
+    getOverlappingKeyframes,
+    addKeyframeWithOverlapCheck,
+    removeKeyframesAtFrame,
+    findClosestKeyframeBeforeFrame,
+    splitKeyframeAtFrame,
+    getTracksWithFrameOverlap,
     resolveValueAtPath,
     advanceFrame,
     goBackFrame,
@@ -414,6 +538,69 @@ export function addKeyframeToTimeline(
   easing: EasingCurve = 'linear',
 ) {
   timeline.addKeyframe(parameterPath, frame, value, easing)
+}
+
+/**
+ * Add a keyframe with overlap detection and automatic split
+ * @param timeline - The timeline state
+ * @param parameterPath - The parameter path to animate
+ * @param frame - The frame to add the keyframe at
+ * @param value - The value at that frame
+ * @param easing - Optional easing curve
+ * @returns true if keyframe was successfully added, false if update was performed instead
+ */
+export function addKeyframeWithOverlapCheckToTimeline(
+  timeline: TimelineState,
+  parameterPath: string,
+  frame: number,
+  value: number | string | [number, number, number] | [number, number, number, number],
+  easing: EasingCurve = 'linear',
+): boolean {
+  return timeline.addKeyframeWithOverlapCheck(parameterPath, frame, value, easing)
+}
+
+/**
+ * Get all tracks with keyframes at a specific frame
+ */
+export function getTracksWithFrameOverlapToTimeline(
+  timeline: TimelineState,
+  frame: number,
+): string[] {
+  return timeline.getTracksWithFrameOverlap(frame)
+}
+
+/**
+ * Find the closest keyframe before or at a given frame
+ */
+export function findClosestKeyframeBeforeFrameToTimeline(
+  timeline: TimelineState,
+  parameterPath: string,
+  frame: number,
+): KeyframeData | undefined {
+  return timeline.findClosestKeyframeBeforeFrame(parameterPath, frame)
+}
+
+/**
+ * Split a keyframe at a specified frame position
+ */
+export function splitKeyframeAtFrameToTimeline(
+  timeline: TimelineState,
+  parameterPath: string,
+  originalFrame: number,
+  splitFrame: number,
+): boolean {
+  return timeline.splitKeyframeAtFrame(parameterPath, originalFrame, splitFrame)
+}
+
+/**
+ * Remove all keyframes at a specific frame for a track
+ */
+export function removeKeyframesAtFrameToTimeline(
+  timeline: TimelineState,
+  parameterPath: string,
+  frame: number,
+): void {
+  timeline.removeKeyframesAtFrame(parameterPath, frame)
 }
 
 export type TimelineState = ReturnType<typeof createTimelineState>
