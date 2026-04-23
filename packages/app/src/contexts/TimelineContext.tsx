@@ -10,11 +10,7 @@ export const TimelineContext = createContext<TimelineContextValue>({} as Timelin
 export const TimelineContextProvider = TimelineContext.Provider
 
 export function useTimeline() {
-  return useContextSafe(
-    TimelineContext,
-    'useTimeline',
-    'TimelineContextProvider',
-  )
+  return useContextSafe(TimelineContext, 'useTimeline', 'TimelineContextProvider')()
 }
 
 export function createTimelineStateSignal() {
@@ -24,7 +20,7 @@ export function createTimelineStateSignal() {
 export function TimelineProvider(props: { children: JSX.Element }) {
   const [timeline] = createTimelineStateSignal()
   return (
-    <TimelineContext.Provider value={timeline}>
+    <TimelineContext.Provider value={timeline()}>
       {props.children}
     </TimelineContext.Provider>
   )
