@@ -308,15 +308,68 @@ export function createTimelineState() {
     if (!track) return false
 
     const keyframe = track.keyframes.find((kf: KeyframeData) => kf.frame === originalFrame)
-    if (!keyframe || keyframe.value === null) return false
+    if (!keyframe || keyframe.value === null || typeof keyframe.value === 'boolean') return false
 
     // Remove the original keyframe
     removeKeyframesAtFrame(parameterPath, originalFrame)
 
-    // Add new keyframes at split positions (only if value is not null)
+    // Add new keyframes at split positions (only if value is not null or boolean)
     addKeyframe(parameterPath, originalFrame, keyframe.value, keyframe.easing)
     addKeyframe(parameterPath, splitFrame, keyframe.value, keyframe.easing)
 
+    return true
+  }
+
+  /**
+   * Mirror keyframe value to the opposite side of the timeline
+   * Calculates the mirrored frame position based on timeline bounds
+   */
+  function mirrorKeyframeToOpposite(
+    parameterPath: string,
+    frame: number,
+  ): number | null {
+    const currentConfig = config()
+    const _frameRange = currentConfig.endFrame - currentConfig.startFrame
+
+    // Calculate mirrored frame (if center is startFrame)
+    const mirroredFrame = currentConfig.startFrame + (currentConfig.endFrame - frame)
+
+    // Check if mirrored frame is within valid range
+    if (mirroredFrame < currentConfig.startFrame || mirroredFrame > currentConfig.endFrame) {
+      return null
+    }
+
+    return mirroredFrame
+  }
+
+  /**
+   * Apply mirrored value from one keyframe to another track
+   * Useful for creating symmetrical animations across different parameters
+   */
+  function applyMirroredValueFromTrack(
+    sourceParameterPath: string,
+    targetParameterPath: string,
+    frame: number,
+  ): boolean {
+    const sourceTrack = tracks().find(
+      (t: TimelineTrack): t is TimelineTrack => t.parameterPath === sourceParameterPath,
+    )
+    if (!sourceTrack) return false
+
+    const targetTrack = tracks().find(
+      (t: TimelineTrack): t is TimelineTrack => t.parameterPath === targetParameterPath,
+    )
+    if (!targetTrack) return false
+
+    // Get keyframe value at source frame
+    const keyframe = sourceTrack.keyframes.find((kf: KeyframeData) => kf.frame === frame)
+    if (!keyframe || keyframe.value === null || typeof keyframe.value === 'boolean') return false
+
+    // Add keyframe to target track at mirrored frame with same easing
+    const mirroredFrame = mirrorKeyframeToOpposite(sourceParameterPath, frame)
+    if (mirroredFrame === null) return false
+
+    addKeyframe(targetParameterPath, mirroredFrame, keyframe.value, keyframe.easing)
     return true
   }
 
@@ -516,6 +569,8 @@ export function createTimelineState() {
     findClosestKeyframeBeforeFrame,
     splitKeyframeAtFrame,
     getTracksWithFrameOverlap,
+    mirrorKeyframeToOpposite,
+    applyMirroredValueFromTrack,
     resolveValueAtPath,
     advanceFrame,
     goBackFrame,
@@ -601,6 +656,46 @@ export function removeKeyframesAtFrameToTimeline(
   frame: number,
 ): void {
   timeline.removeKeyframesAtFrame(parameterPath, frame)
+}
+
+/**
+ * Mirror keyframe value to the opposite side of the timeline
+ * @param timeline - The timeline state
+ * @param parameterPath - The parameter path to mirror
+ * @param frame - The frame to mirror from
+ * @returns The mirrored frame number, or null if not possible
+ */
+export function mirrorKeyframeToOppositeToTimeline(
+  timeline: TimelineState,
+  parameterPath: string,
+  frame: number,
+): number | null {
+  const config = timeline.config()
+  const mirroredFrame = config.startFrame + (config.endFrame - frame)
+
+  // Check if mirrored frame is within valid range
+  if (mirroredFrame < config.startFrame || mirroredFrame > config.endFrame) {
+    return null
+  }
+
+  return mirroredFrame
+}
+
+/**
+ * Apply mirrored value from one track to another
+ * @param timeline - The timeline state
+ * @param sourceParameterPath - The source track parameter path
+ * @param targetParameterPath - The target track parameter path
+ * @param frame - The frame to mirror from
+ * @returns true if successful, false if source keyframe doesn't exist
+ */
+export function applyMirroredValueFromTrackToTimeline(
+  timeline: TimelineState,
+  sourceParameterPath: string,
+  targetParameterPath: string,
+  frame: number,
+): boolean {
+  return timeline.applyMirroredValueFromTrack(sourceParameterPath, targetParameterPath, frame)
 }
 
 export type TimelineState = ReturnType<typeof createTimelineState>
