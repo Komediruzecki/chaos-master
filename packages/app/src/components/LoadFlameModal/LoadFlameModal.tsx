@@ -1,5 +1,6 @@
-import { createSignal, For, Show } from 'solid-js'
+import { createSignal, For, Show, useContext } from 'solid-js'
 import { vec2f, vec4f } from 'typegpu/data'
+import { TimelineContext } from '@/contexts/TimelineContext'
 import { DEFAULT_QUALITY } from '@/defaults'
 import { examples } from '@/flame/examples'
 import { Flam3 } from '@/flame/Flam3'
@@ -21,30 +22,34 @@ import type { ChangeHistory } from '@/utils/createStoreHistory'
 const CANCEL = 'cancel'
 
 function Preview(props: { flameDescriptor: FlameDescriptor }) {
+  const timeline = useContext(TimelineContext)
+
   return (
     <Root
       adapterOptions={{
         powerPreference: 'high-performance',
       }}
     >
-      <AutoCanvas pixelRatio={1}>
-        <Camera2D
-          position={vec2f(
-            ...props.flameDescriptor.renderSettings.camera.position,
-          )}
-          zoom={props.flameDescriptor.renderSettings.camera.zoom}
-        >
-          <Flam3
-            quality={DEFAULT_QUALITY}
-            pointCountPerBatch={2e4}
-            adaptiveFilterEnabled={true}
-            flameDescriptor={props.flameDescriptor}
-            renderInterval={1}
-            onExportImage={undefined}
-            edgeFadeColor={vec4f(0)}
-          />
-        </Camera2D>
-      </AutoCanvas>
+      <TimelineContext.Provider value={timeline()}>
+        <AutoCanvas pixelRatio={1}>
+          <Camera2D
+            position={vec2f(
+              ...props.flameDescriptor.renderSettings.camera.position,
+            )}
+            zoom={props.flameDescriptor.renderSettings.camera.zoom}
+          >
+            <Flam3
+              quality={DEFAULT_QUALITY}
+              pointCountPerBatch={2e4}
+              adaptiveFilterEnabled={true}
+              flameDescriptor={props.flameDescriptor}
+              renderInterval={1}
+              onExportImage={undefined}
+              edgeFadeColor={vec4f(0)}
+            />
+          </Camera2D>
+        </AutoCanvas>
+      </TimelineContext.Provider>
     </Root>
   )
 }
