@@ -661,49 +661,11 @@ export function createTimelineState() {
       }
     }
 
-    // Animate variation parameters
-    const variationParams: Partial<{
-      waveX?: number
-      waveY?: number
-      intensity?: number
-      periodicity?: number
-      octaves?: number
-      oscillationSpeed?: number
-      rippleRadius?: number
-      distortion?: number
-    }> = {}
-    const variationParamPaths = [
-      'waveX',
-      'waveY',
-      'intensity',
-      'periodicity',
-      'octaves',
-      'oscillationSpeed',
-      'rippleRadius',
-      'distortion',
-    ]
-    for (const paramPath of variationParamPaths) {
-      const track = tracks().find(
-        (t: TimelineTrack) => t.parameterPath === paramPath,
-      )
-      if (track) {
-        const value = resolveKeyframeValue(track.keyframes, frame)
-        if (value !== null && typeof value === 'number') {
-          if (paramPath === 'waveX') variationParams.waveX = value
-          if (paramPath === 'waveY') variationParams.waveY = value
-          if (paramPath === 'intensity') variationParams.intensity = value
-          if (paramPath === 'periodicity') variationParams.periodicity = value
-          if (paramPath === 'octaves') variationParams.octaves = value
-          if (paramPath === 'oscillationSpeed')
-            variationParams.oscillationSpeed = value
-          if (paramPath === 'rippleRadius') variationParams.rippleRadius = value
-          if (paramPath === 'distortion') variationParams.distortion = value
-        }
-      }
-    }
-    if (Object.keys(variationParams).length > 0) {
-      flame.renderSettings.variationParams = variationParams
-    }
+    // Note: Variation parameters are specific to each variation type
+  // Each parametric variation has its own set of parameters in its descriptor
+  // Example: tunnelVar has 'distortion', lissajousVar has 'freqX', 'freqY', etc.
+  // For now, global variation parameter animation is not supported.
+  // Users should animate the variation type itself or the transform's affine parameters.
   }
 
   return {

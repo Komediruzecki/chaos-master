@@ -239,16 +239,12 @@ export function KeyframeEditor() {
           <option value="camera.y">Camera - Y Position</option>
           <option value="camera.zoom">Camera - Zoom</option>
           <option value="camera.rotation">Camera - Rotation</option>
-          <option value="waveX">Variation - Wave X</option>
-          <option value="waveY">Variation - Wave Y</option>
-          <option value="intensity">Variation - Intensity</option>
-          <option value="periodicity">Variation - Periodicity</option>
-          <option value="octaves">Variation - Octaves</option>
-          <option value="oscillationSpeed">
-            Variation - Oscillation Speed
-          </option>
-          <option value="rippleRadius">Variation - Ripple Radius</option>
-          <option value="distortion">Variation - Distortion</option>
+          <!-- NOTE: Variation parameters are not yet fully supported for timeline animation.
+      Each parametric variation has its own specific parameters that are part of
+      the variation descriptor, not global animation tracks. Examples:
+      - tunnelVar has 'distortion'
+      - lissajousVar has 'freqX', 'freqY', 'freqRatio', 'amplitude', 'phase'
+      - Many others have their own unique parameter sets -->
         </select>
       </div>
 
