@@ -1,4 +1,3 @@
-import { onCleanup } from 'solid-js'
 import { tgpu } from 'typegpu'
 import { arrayOf, builtin, f32, i32, struct, u32, vec2f, vec2i, vec2u, } from 'typegpu/data'
 import { add, arrayLength, atomicAdd, mul } from 'typegpu/std'
@@ -68,11 +67,6 @@ export function createIFSPipeline(
   const outputTextureDimensionBuffer = root
     .createBuffer(vec2i, vec2i(...outputTextureDimension))
     .$usage('uniform')
-
-  onCleanup(() => {
-    flameUniformsBuffer.destroy()
-    outputTextureDimensionBuffer.destroy()
-  })
 
   const bindGroup = root.createBindGroup(bindGroupLayout, {
     pointRandomSeeds,
