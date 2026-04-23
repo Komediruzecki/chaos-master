@@ -1,4 +1,4 @@
-import { createSignal, createMemo, Show } from 'solid-js'
+import { createMemo, createSignal, Show } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { Cross, Pause, PlayPause, SkipBack, SkipForward } from '@/icons'
 import { Checkbox } from '../Checkbox/Checkbox'

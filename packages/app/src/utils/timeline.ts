@@ -16,6 +16,99 @@ export type PointInitMode =
   | 'pointInitModeGaussianSquare'
   | 'pointInitModeGaussianCircle'
 
+/**
+ * Expandable mapping of variation types to their available parameters.
+ * This system can be extended to support more variations and parameters.
+ */
+export const VariationParameterMaps: Record<string, string[]> = {
+  tunnelVar: ['distortion'],
+  lissajousVar: ['freqX', 'freqY', 'freqRatio', 'amplitude', 'phase'],
+  pigtail: ['xmultiplier', 'ymultiplier'],
+  blob: ['scale', 'phi', 'theta', 'psi'],
+  fan2: ['curl_1', 'curl_2'],
+  grid: ['du', 'dv'],
+  hexes: ['Sx', 'Sy'],
+  invCircle: ['distortion'],
+  invCircle2: ['distortion'],
+  invEllipse: ['a', 'b', 'sinAngle', 'cosAngle'],
+  juliaN: ['jx', 'jy'],
+  juliaScope: ['jx', 'jy'],
+  linearT: [],
+  line: [],
+  popcorn: ['distortion'],
+  popcorn2: ['distortion'],
+  radialBlur: ['blurRadius'],
+  rectangles: ['dx', 'dy'],
+  rings: ['b', 'c', 'd', 'e', 'f'],
+  rings2: ['scale', 'phi', 'theta', 'psi'],
+  scry: ['Sx', 'Sy', 'a', 'b', 'c'],
+  sinusGrid: ['dx', 'dy'],
+  spirograph: ['Sx', 'Sy', 'a', 'b', 'c'],
+  squish: ['Sx', 'Sy'],
+  starBlur: ['blurRadius'],
+  swirl: ['Sx', 'Sy', 'a', 'b', 'c'],
+  swirl3: ['Sx', 'Sy', 'a', 'b', 'c'],
+}
+
+/**
+ * Resolve variation parameters for a given transform and variation type.
+ * @param transforms - The transform record containing all variations
+ * @param transformId - The ID of the transform
+ * @param variationId - The ID of the variation
+ * @param paramPath - The parameter path (e.g., "tunnelVar.distortion")
+ * @param frame - The current frame number
+ * @returns The interpolated parameter value or null if not found
+ */
+export function resolveVariationParameter(
+  transforms: Record<string, unknown>,
+  transformId: string,
+  variationId: string,
+  paramPath: string,
+  frame: number,
+): number | null {
+  const transform = transforms[transformId] as {
+    variations: Record<string, unknown>
+  }
+
+  if (!transform) return null
+
+  const variation = transform.variations[variationId] as {
+    type: string
+    params: Record<string, number>
+    weight: number
+  }
+
+  if (!variation || !variation.params) return null
+
+  // Get the available parameters for this variation type
+  const params = VariationParameterMaps[variation.type] || []
+
+  // Find the parameter in the paramPath
+  const paramName = paramPath.split('.').pop()
+  if (!paramName || !params.includes(paramName)) return null
+
+  // Check if there's a keyframe track for this parameter
+  const timelineState = window.currentTimeline as
+    | {
+        tracks: () => Record<string, { parameterPath: string; keyframes: { frame: number; value: number }[] }>
+        getFrame: () => number
+      }
+    | undefined
+
+  if (!timelineState) return null
+
+  const trackPath = `${transformId}.${variationId}.${paramName}`
+  const track = timelineState.tracks()[trackPath]
+
+  if (!track) return null
+
+  // Find the keyframe at the current frame
+  const keyframe = track.keyframes.find((kf: any) => kf.frame === frame)
+  if (!keyframe) return null
+
+  return keyframe.value
+}
+
 export interface FlameDescriptor {
   renderSettings: {
     exposure: number
@@ -37,16 +130,6 @@ export interface FlameDescriptor {
     }
     palettePhase?: number
     paletteSpeed?: number
-    variationParams?: {
-      waveX?: number
-      waveY?: number
-      intensity?: number
-      periodicity?: number
-      octaves?: number
-      oscillationSpeed?: number
-      rippleRadius?: number
-      distortion?: number
-    }
   }
   transforms: Record<string, unknown>
   metadata: {
@@ -661,11 +744,42 @@ export function createTimelineState() {
       }
     }
 
-    // Note: Variation parameters are specific to each variation type
-  // Each parametric variation has its own set of parameters in its descriptor
-  // Example: tunnelVar has 'distortion', lissajousVar has 'freqX', 'freqY', etc.
-  // For now, global variation parameter animation is not supported.
-  // Users should animate the variation type itself or the transform's affine parameters.
+    // Apply variation parameters
+
+    // Iterate through all tracks and apply variation parameter animations
+    for (const trackPath of Object.keys(tracks())) {
+      // Check if this is a variation parameter track (format: transformId.variationId.paramName)
+      const parts = trackPath.split('.')
+      if (parts.length !== 3) continue
+
+      const [transformId, variationId, paramName] = parts
+
+      // Check if this parameter is defined for this variation type
+      const params = VariationParameterMaps[variationId] || []
+      if (!params.includes(paramName)) continue
+
+      // Get the variation from the transform
+      const transform = flame.transforms[transformId] as {
+        variations: Record<string, unknown>
+      }
+
+      if (!transform) continue
+
+      const variation = transform.variations[variationId] as {
+        params: Record<string, number>
+        type: string
+      }
+
+      if (!variation || !variation.params) continue
+
+      // Check if there's a keyframe for this parameter at current frame
+      const track = tracks()[trackPath]
+      const keyframe = track.keyframes.find((kf: KeyframeData) => kf.frame === frame)
+
+      if (keyframe && typeof keyframe.value === 'number') {
+        variation.params[paramName] = keyframe.value
+      }
+    }
   }
 
   return {

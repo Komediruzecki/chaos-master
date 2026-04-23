@@ -10,6 +10,74 @@
   }
 }
 
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .editor {
+    padding: var(--space-1);
+    gap: var(--space-1.5);
+  }
+
+  .title {
+    font-size: 0.75rem;
+  }
+
+  .parameterSelect,
+  .keyframeValue {
+    font-size: 0.7rem;
+    padding: var(--space-0.5);
+  }
+
+  .parameterSelect select,
+  .keyframeValue input {
+    padding: 0.35rem 0.4rem;
+    font-size: 0.7rem;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+  }
+
+  .button {
+    flex: 1 1 calc(50% - var(--space-0.5));
+    padding: 0.5rem 0.6rem;
+    font-size: 0.7rem;
+  }
+
+  .currentValue,
+  .info {
+    font-size: 0.65rem;
+    padding: var(--space-0.5);
+  }
+
+  .info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .editor {
+    padding: var(--space-0.5);
+    gap: var(--space-1);
+  }
+
+  .title {
+    font-size: 0.7rem;
+  }
+
+  .parameterSelect,
+  .keyframeValue {
+    font-size: 0.65rem;
+  }
+
+  .button {
+    flex: 1 1 100%;
+    padding: 0.6rem 0.7rem;
+    font-size: 0.7rem;
+  }
+}
+
 .title {
   font-size: 0.85rem;
   font-weight: 600;

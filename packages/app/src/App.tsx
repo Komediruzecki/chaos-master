@@ -40,21 +40,17 @@ import { accumulatedPointCount, qualityPointCountLimit, setCurrentQuality, setQu
 import { MAX_CAMERA_ZOOM_VALUE, MIN_CAMERA_ZOOM_VALUE, } from './flame/schema/flameSchema'
 import { generateTransformId, generateVariationId, } from './flame/transformFunction'
 import { isParametricVariation, isVariationType } from './flame/variations'
-import { getNormalizedVariationName, getParamsEditor, getVariationDefault, } from './flame/variations/utils'
+import { getNormalizedVariationName, getParamsEditor, getVariationDefault } from './flame/variations/utils'
 import { Cross, Plus } from './icons'
 import { AutoCanvas } from './lib/AutoCanvas'
-import { Root } from './lib/Root'
-import { WheelZoomCamera2D } from './lib/WheelZoomCamera2D'
 import { createStoreHistory } from './utils/createStoreHistory'
 import { addFlameDataToPng } from './utils/flameInPng'
-import { compressJsonQueryParam, decodeJsonQueryParam, } from './utils/jsonQueryParam'
-import { createTimelineState } from './utils/timeline'
 import { saveRecentFlame } from './utils/recentFlames'
 import { sum } from './utils/sum'
-import { addKeyframeToTimeline } from './utils/timeline'
+import { addKeyframeToTimeline,compressJsonQueryParam, createTimelineState, decodeJsonQueryParam } from './utils/timeline'
 import { useKeyboardShortcuts } from './utils/useKeyboardShortcuts'
 import { useLoadFlameFromFile } from './utils/useLoadFlameFromFile'
-import { dismissWelcome, hasWelcomeBeenDismissed, } from './utils/welcomeDismissed'
+import { dismissWelcome, hasWelcomeBeenDismissed } from './utils/welcomeDismissed'
 import type { Setter } from 'solid-js'
 import type { v2f } from 'typegpu/data'
 import type { QualityPreset } from './components/Quality/QualityPresets'
@@ -62,7 +58,7 @@ import type { ColorInitMode } from './flame/colorInitMode'
 import type { ColorMap, Palette } from './flame/colorMap'
 import type { DrawMode } from './flame/drawMode'
 import type { PointInitMode } from './flame/pointInitMode'
-import type { FlameDescriptor, TransformFunction, } from './flame/schema/flameSchema'
+import type { FlameDescriptor, TransformFunction } from './flame/schema/flameSchema'
 
 const EDGE_FADE_COLOR = {
   light: vec4f(0.96, 0.96, 0.96, 1),
@@ -282,9 +278,9 @@ function App(props: AppProps) {
     )
 
     if (
-      !(hasCameraX as boolean) ||
-      !(hasCameraY as boolean) ||
-      !(hasCameraZoom as boolean)
+      !(hasCameraX) ||
+      !(hasCameraY) ||
+      !(hasCameraZoom)
     ) {
       addKeyframeToTimeline(
         t,
@@ -825,11 +821,10 @@ export function Wrappers() {
 
   const [dontShowAgain, setDontShowAgain] = createSignal(false)
   // Don't show welcome if there's a flame in the URL query, or while loading
-  const [showWelcome, setShowWelcome] = createSignal(
-    !hasWelcomeBeenDismissed() &&
-      flameFromQuery.state === 'ready' &&
-      !flameFromQuery(),
+  const showWelcomeComputed = createMemo(() =>
+    (hasWelcomeBeenDismissed() as unknown as boolean) === false && (flameFromQuery.state === 'ready' && !flameFromQuery()),
   )
+  const [showWelcome, setShowWelcome] = createSignal(showWelcomeComputed())
   const [selectedFlame, setSelectedFlame] = createSignal<
     FlameDescriptor | undefined
   >()

@@ -1,7 +1,7 @@
 import { createEffect, createMemo, createSignal } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { Cross, Redo } from '@/icons'
-import { addKeyframeToTimeline } from '@/utils/timeline'
+import { addKeyframeToTimeline, VariationParameterMaps } from '@/utils/timeline'
 import ui from './KeyframeEditor.module.css'
 import type { EasingCurve } from '@/flame/schema/timeline'
 import type { KeyframeData, TimelineTrack } from '@/utils/timeline'
@@ -27,9 +27,8 @@ export function KeyframeEditor() {
 
   // Find current value for selected path at current frame
   const currentValue = createMemo(() => {
-    const value =
-      timeline.resolveValueAtPath(currentPath(), currentFrame() ?? 0) ?? null
-    return value
+    const value = timeline.resolveValueAtPath(currentPath(), currentFrame())
+    return value ?? null
   })
 
   // Check if current path expects a number or string
@@ -40,14 +39,6 @@ export function KeyframeEditor() {
       'skipIters',
       'vibrancy',
       'paletteSpeed',
-      'waveX',
-      'waveY',
-      'intensity',
-      'periodicity',
-      'octaves',
-      'oscillationSpeed',
-      'rippleRadius',
-      'distortion',
     ].includes(path)
   }
 
@@ -130,7 +121,7 @@ export function KeyframeEditor() {
     addKeyframeToTimeline(
       timeline,
       currentPath(),
-      currentFrame() ?? 0,
+      currentFrame(),
       keyValue,
       interpolationMode(),
     )
@@ -204,7 +195,7 @@ export function KeyframeEditor() {
   const hasKeyframeAtFrame = (): boolean => {
     const t = track()
     if (!t) return false
-    return t.keyframes.some((kf: KeyframeData) => (kf as any).frame === (currentFrame() ?? 0))
+    return t.keyframes.some((kf: KeyframeData) => kf.frame === currentFrame())
   }
 
   const isAnimating = (): boolean => {
@@ -239,13 +230,25 @@ export function KeyframeEditor() {
           <option value="camera.y">Camera - Y Position</option>
           <option value="camera.zoom">Camera - Zoom</option>
           <option value="camera.rotation">Camera - Rotation</option>
-          <!-- NOTE: Variation parameters are not yet fully supported for timeline animation.
-      Each parametric variation has its own specific parameters that are part of
-      the variation descriptor, not global animation tracks. Examples:
-      - tunnelVar has 'distortion'
-      - lissajousVar has 'freqX', 'freqY', 'freqRatio', 'amplitude', 'phase'
-      - Many others have their own unique parameter sets -->
+          <optgroup label="Variation Parameters (expandable)">
+            {Object.entries(VariationParameterMaps).map(([variationType, params]) => (
+              <For each={params.slice(0, 5)}>
+                {(paramName) => (
+                  <option value={`${variationType}.${paramName}`}>
+                    Variation ({variationType}) - {paramName}
+                  </option>
+                )}
+              </For>
+            ))}
+            <option value="" disabled>...</option>
+            <option value="" disabled>
+              Expand to add more variation parameters
+            </option>
+          </optgroup>
         </select>
+        {/* Note: Variation parameter support is expandable.
+Each parametric variation can have its own specific parameters.
+This is a limited implementation. See VariationParameterMaps for the full list. */}
       </div>
 
       {currentValue() !== null && (

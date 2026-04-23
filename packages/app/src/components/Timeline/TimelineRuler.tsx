@@ -12,7 +12,7 @@ export function TimelineRuler() {
   const currentTracks = tracks()
   for (const track of Object.values(currentTracks)) {
     for (const kf of track.keyframes) {
-      keyframeFrames.add((kf as any).frame)
+      keyframeFrames.add(kf.frame)
     }
   }
 
@@ -38,7 +38,7 @@ export function TimelineRuler() {
         ))}
       </div>
       <div class={ui.scale}>
-        {Array.from({ length: config.endFrame + 1 }, (_, i) => i).map(
+        {Array.from({ length: config().endFrame + 1 }, (_, i) => i).map(
           (frame) => (
             <span
               data-keyframe={frame}
