@@ -28,7 +28,7 @@ import { ViewControls } from './components/ViewControls/ViewControls'
 import { WelcomeScreen } from './components/WelcomeScreen/WelcomeScreen'
 import { ChangeHistoryContextProvider } from './contexts/ChangeHistoryContext'
 import { ThemeContextProvider, useTheme } from './contexts/ThemeContext'
-import { TimelineContextProvider, createTimelineStateSignal } from './contexts/TimelineContext'
+import { TimelineContextProvider } from './contexts/TimelineContext'
 import { DEFAULT_POINT_COUNT, DEFAULT_QUALITY, DEFAULT_RENDER_INTERVAL_MS, DEFAULT_RESOLUTION, } from './defaults'
 import { colorInitModeToImplFn } from './flame/colorInitMode'
 import { applyColorMapToFlame } from './flame/colorMap'
@@ -48,6 +48,7 @@ import { WheelZoomCamera2D } from './lib/WheelZoomCamera2D'
 import { createStoreHistory } from './utils/createStoreHistory'
 import { addFlameDataToPng } from './utils/flameInPng'
 import { compressJsonQueryParam, decodeJsonQueryParam, } from './utils/jsonQueryParam'
+import { createTimelineState } from './utils/timeline'
 import { saveRecentFlame } from './utils/recentFlames'
 import { sum } from './utils/sum'
 import { addKeyframeToTimeline } from './utils/timeline'
@@ -104,6 +105,7 @@ function App(props: AppProps) {
   const [onExportImage, setOnExportImage] = createSignal<ExportImageType>()
   const [adaptiveFilterEnabled, setAdaptiveFilterEnabled] = createSignal(true)
   const [showSidebar, setShowSidebar] = createSignal(true)
+  const [showTimeline, setShowTimeline] = createSignal(false)
   const [selectedPaletteId, setSelectedPaletteId] =
     createSignal<string>('default')
   const [selectedPalette, setSelectedPalette] = createSignal<
@@ -259,11 +261,11 @@ function App(props: AppProps) {
     }
   }
 
-  const [timeline] = createTimelineStateSignal()
+  const timeline = createTimelineState()
 
   // Add initial keyframes for camera animation
   createEffect(() => {
-    const t = timeline()
+    const t = timeline
     const tracks = t.tracks()
     const currentFrame = t.currentFrame()
 
@@ -342,7 +344,7 @@ function App(props: AppProps) {
                     }
                     palette={selectedPalette()}
                     onEnterAnimation={() => {
-                      const t = timeline()
+                      const t = timeline
                       t.setIsPlaying(true)
                     }}
                   />
@@ -358,14 +360,26 @@ function App(props: AppProps) {
             setPixelRatio={setPixelRatio}
           />
 
-          <div class={ui.timelineContainer}>
-            <TimelineSection
-              onEnterAnimation={() => {
-                const t = timeline()
-                t.setIsPlaying(true)
-              }}
-            />
-          </div>
+          <Button
+            onClick={() => {
+              document.startViewTransition(() => {
+                setShowTimeline(!showTimeline())
+              })
+            }}
+          >
+            {showTimeline() ? 'Hide Timeline' : 'Show Timeline'}
+          </Button>
+
+          <Show when={showTimeline()}>
+            <div class={ui.timelineContainer}>
+              <TimelineSection
+                onEnterAnimation={() => {
+                  const t = timeline
+                  t.setIsPlaying(true)
+                }}
+              />
+            </div>
+          </Show>
           <Show when={showSidebar()}>
             <div class={ui.sidebar}>
               <AffineEditor

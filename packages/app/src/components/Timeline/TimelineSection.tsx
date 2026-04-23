@@ -1,4 +1,4 @@
-import { createSignal, Show } from 'solid-js'
+import { createSignal, createMemo, Show } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { Cross, Pause, PlayPause, SkipBack, SkipForward } from '@/icons'
 import { Checkbox } from '../Checkbox/Checkbox'
@@ -14,9 +14,9 @@ export interface TimelineSectionProps {
 }
 
 export function TimelineSection({ onEnterAnimation }: TimelineSectionProps) {
-  const timeline = useTimeline()
+  const timeline = useTimeline()!
   const [collapsed, setCollapsed] = createSignal(false)
-  const isPlaying = timeline.isPlaying
+  const isPlaying = createMemo(() => timeline.isPlaying())
 
   const setConfig = (updates: Partial<TimelineConfig>) => {
     timeline.setConfig((prev) => ({ ...prev, ...updates }) as TimelineConfig)

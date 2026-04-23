@@ -1,12 +1,13 @@
+import { createMemo } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
 import ui from './TimelinePanel.module.css'
 
 export function TimelinePanel() {
-  const timeline = useTimeline()
+  const timeline = useTimeline()!
 
-  const config = timeline.config
-  const currentFrame = timeline.currentFrame
-  const isPlaying = timeline.isPlaying
+  const config = createMemo(() => timeline.config())
+  const currentFrame = createMemo(() => timeline.currentFrame())
+  const isPlaying = createMemo(() => timeline.isPlaying())
 
   const handlePlayPause = () => {
     timeline.setIsPlaying(!isPlaying())

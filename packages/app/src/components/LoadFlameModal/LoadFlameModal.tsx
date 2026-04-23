@@ -1,9 +1,5 @@
-import { createSignal, For, Show, useContext } from 'solid-js'
+import { createSignal, For, Show } from 'solid-js'
 import { vec2f, vec4f } from 'typegpu/data'
-import {
-  TimelineContext,
-  TimelineContextProvider,
-} from '@/contexts/TimelineContext'
 import { DEFAULT_QUALITY } from '@/defaults'
 import { examples } from '@/flame/examples'
 import { Flam3 } from '@/flame/Flam3'
@@ -25,16 +21,13 @@ import type { ChangeHistory } from '@/utils/createStoreHistory'
 const CANCEL = 'cancel'
 
 function Preview(props: { flameDescriptor: FlameDescriptor }) {
-  const timeline = useContext(TimelineContext)
-
   return (
     <Root
       adapterOptions={{
         powerPreference: 'high-performance',
       }}
     >
-      <TimelineContextProvider value={timeline}>
-        <AutoCanvas pixelRatio={1}>
+      <AutoCanvas pixelRatio={1}>
           <Camera2D
             position={vec2f(
               ...props.flameDescriptor.renderSettings.camera.position,
@@ -52,7 +45,6 @@ function Preview(props: { flameDescriptor: FlameDescriptor }) {
             />
           </Camera2D>
         </AutoCanvas>
-      </TimelineContextProvider>
     </Root>
   )
 }

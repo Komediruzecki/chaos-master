@@ -7,16 +7,16 @@ import type { EasingCurve } from '@/flame/schema/timeline'
 import type { KeyframeData, TimelineTrack } from '@/utils/timeline'
 
 export function KeyframeEditor() {
-  const timeline = useTimeline()
-  const currentFrame = timeline.currentFrame
-  const tracks = timeline.tracks
-
+  const timeline = useTimeline()!
   const [selectedPath, setSelectedPath] = createSignal('exposure')
   const [keyframeValue, setKeyframeValue] = createSignal('0.25')
   const [interpolationMode, setInterpolationMode] =
     createSignal<EasingCurve>('linear')
 
   const currentPath = () => selectedPath()
+  const currentFrame = createMemo(() => timeline.currentFrame())
+  const tracks = createMemo(() => timeline.tracks())
+
   const track = createMemo(() => {
     const path = currentPath()
     const tracksData = tracks()
@@ -28,7 +28,7 @@ export function KeyframeEditor() {
   // Find current value for selected path at current frame
   const currentValue = createMemo(() => {
     const value =
-      timeline.resolveValueAtPath(currentPath(), currentFrame()) ?? null
+      timeline.resolveValueAtPath(currentPath(), currentFrame() ?? 0) ?? null
     return value
   })
 
@@ -130,7 +130,7 @@ export function KeyframeEditor() {
     addKeyframeToTimeline(
       timeline,
       currentPath(),
-      currentFrame(),
+      currentFrame() ?? 0,
       keyValue,
       interpolationMode(),
     )
@@ -204,7 +204,7 @@ export function KeyframeEditor() {
   const hasKeyframeAtFrame = (): boolean => {
     const t = track()
     if (!t) return false
-    return t.keyframes.some((kf: KeyframeData) => kf.frame === currentFrame())
+    return t.keyframes.some((kf: KeyframeData) => (kf as any).frame === (currentFrame() ?? 0))
   }
 
   const isAnimating = (): boolean => {

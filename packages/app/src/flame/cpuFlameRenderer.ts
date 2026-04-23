@@ -82,9 +82,10 @@ export class CPUFlameRenderer {
     // Flatten buckets for comparison with GPU
     const buckets = new Float32Array(bucketCount * 3)
     for (let i = 0; i < bucketCount; i++) {
-      buckets[i * 3] = bucketsData[i].count / 1000
-      buckets[i * 3 + 1] = bucketsData[i].colorA / 1000
-      buckets[i * 3 + 2] = bucketsData[i].colorB / 1000
+      const bucket = bucketsData[i]!
+      buckets[i * 3] = bucket.count / 1000
+      buckets[i * 3 + 1] = bucket.colorA / 1000
+      buckets[i * 3 + 2] = bucket.colorB / 1000
     }
 
     return {
@@ -109,54 +110,48 @@ export class CPUFlameRenderer {
     }
   }) {
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return {
-      fnImpl: function (point: any): any {
+      fnImpl: function (point: { position: [number, number, number]; color: [number, number] }): {
+        position: [number, number, number];
+        color: [number, number];
+      } {
         // Simplified CPU transform - in real implementation,
         // this would compute the same iterations as WGSL
-        const pos = point.position as [number, number, number]
+        const pos = point.position
 
         // Apply affine transforms (simplified)
-        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-
         const newX =
-          pos[0] * (matrix[0] ?? 1) +
-          pos[1] * (matrix[3] ?? 0) +
-          (matrix[6] ?? 0)
-        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+          pos[0] * (matrix[0]! || 1) +
+          pos[1] * (matrix[3]! || 0) +
+          (matrix[6]! || 0)
 
         const newY =
-          pos[0] * (matrix[1] ?? 0) +
-          pos[1] * (matrix[4] ?? 1) +
-          (matrix[7] ?? 0)
-        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+          pos[0] * (matrix[1]! || 0) +
+          pos[1] * (matrix[4]! || 1) +
+          (matrix[7]! || 0)
 
         const newZ =
-          pos[0] * (matrix[2] ?? 0) +
-          pos[1] * (matrix[5] ?? 0) +
-          (matrix[8] ?? 0)
+          pos[0] * (matrix[2]! || 0) +
+          pos[1] * (matrix[5]! || 0) +
+          (matrix[8]! || 0)
 
         // Apply variations (simplified)
-        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-
         point.position = [
-          newX + Math.sin((point.color[0] as number) * 10) * 0.1,
-          newY + Math.cos((point.color[1] as number) * 10) * 0.1,
+          newX + Math.sin((point.color[0]) * 10) * 0.1,
+          newY + Math.cos((point.color[1]) * 10) * 0.1,
           newZ,
         ]
 
         // Update color based on variations
-        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-
         point.color = [
-          ((point.color[0] as number) + Math.random()) % 1,
-          ((point.color[1] as number) + Math.random()) % 1,
+          ((point.color[0]) + Math.random()) % 1,
+          ((point.color[1]) + Math.random()) % 1,
         ]
 
         return point
       },
       Uniforms: transform.uniforms,
-    } as unknown as Record<string, any>
+    }
   }
 }
 

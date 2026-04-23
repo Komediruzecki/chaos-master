@@ -1,20 +1,23 @@
+import { createMemo } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
 import ui from './TimelineRuler.module.css'
 
 export function TimelineRuler() {
-  const timeline = useTimeline()
-  const config = timeline.config()
-  const tracks = timeline.tracks
+  const timeline = useTimeline()!
+
+  const config = createMemo(() => timeline.config())
+  const tracks = createMemo(() => timeline.tracks())
 
   const keyframeFrames = new Set<number>()
-  for (const track of Object.values(tracks)) {
+  const currentTracks = tracks()
+  for (const track of Object.values(currentTracks)) {
     for (const kf of track.keyframes) {
-      keyframeFrames.add(kf.frame)
+      keyframeFrames.add((kf as any).frame)
     }
   }
 
   const frameWidth = 30 // pixels per frame
-  const totalWidth = config.endFrame * frameWidth
+  const totalWidth = config().endFrame * frameWidth
 
   const keyframeFramesArr = Array.from(keyframeFrames).sort((a, b) => a - b)
 
