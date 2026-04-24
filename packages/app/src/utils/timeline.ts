@@ -1,6 +1,11 @@
 import { createSignal } from 'solid-js'
 import { clamp } from './easing'
 
+interface TimelineState {
+  tracks: () => Record<string, TimelineTrack>
+  getFrame: () => number
+}
+
 export type EasingCurve =
   | 'linear'
   | 'easeIn'
@@ -78,7 +83,7 @@ export function resolveVariationParameter(
     weight: number
   }
 
-  if (!variation || !variation.params) return null
+  if (!variation || variation.params === undefined) return null
 
   // Get the available parameters for this variation type
   const params = VariationParameterMaps[variation.type] || []
@@ -88,12 +93,7 @@ export function resolveVariationParameter(
   if (!paramName || !params.includes(paramName)) return null
 
   // Check if there's a keyframe track for this parameter
-  const timelineState = window.currentTimeline as
-    | {
-        tracks: () => Record<string, { parameterPath: string; keyframes: { frame: number; value: number }[] }>
-        getFrame: () => number
-      }
-    | undefined
+  const timelineState = window.currentTimeline as TimelineState | undefined
 
   if (!timelineState) return null
 
@@ -759,14 +759,11 @@ export function createTimelineState() {
       if (!params.includes(paramName)) continue
 
       // Get the variation from the transform
-      const transform = flame.transforms[transformId] as {
-        variations: Record<string, unknown>
-      }
-
+      const transform = flame.transforms[transformId]
       if (!transform) continue
 
       const variation = transform.variations[variationId] as {
-        params: Record<string, number>
+        params: Record<string, number> | undefined
         type: string
       }
 
@@ -774,6 +771,8 @@ export function createTimelineState() {
 
       // Check if there's a keyframe for this parameter at current frame
       const track = tracks()[trackPath]
+      if (!track) continue
+
       const keyframe = track.keyframes.find((kf: KeyframeData) => kf.frame === frame)
 
       if (keyframe && typeof keyframe.value === 'number') {

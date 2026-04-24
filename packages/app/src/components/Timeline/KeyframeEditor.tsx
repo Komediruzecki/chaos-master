@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal } from 'solid-js'
+import { createEffect, createMemo, createSignal, For } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { Cross, Redo } from '@/icons'
 import { addKeyframeToTimeline, VariationParameterMaps } from '@/utils/timeline'

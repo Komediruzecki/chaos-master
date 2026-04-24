@@ -822,7 +822,7 @@ export function Wrappers() {
   const [dontShowAgain, setDontShowAgain] = createSignal(false)
   // Don't show welcome if there's a flame in the URL query, or while loading
   const showWelcomeComputed = createMemo(() =>
-    (hasWelcomeBeenDismissed() as unknown as boolean) === false && (flameFromQuery.state === 'ready' && !flameFromQuery()),
+    !hasWelcomeBeenDismissed() && (flameFromQuery.state === 'ready' && flameFromQuery() !== undefined),
   )
   const [showWelcome, setShowWelcome] = createSignal(showWelcomeComputed())
   const [selectedFlame, setSelectedFlame] = createSignal<

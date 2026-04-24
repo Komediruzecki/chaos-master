@@ -4,12 +4,6 @@
 
 import { describe, expect, it } from 'vitest'
 import { resolveVariationParameter, VariationParameterMaps } from './timeline'
-import type { KeyframeData } from './timeline'
-
-interface MockTimeline {
-  getFrame: () => number
-  tracks: () => Record<string, { parameterPath: string; keyframes: KeyframeData[] }>
-}
 
 describe('VariationParameterMaps', () => {
   it('should contain definitions for known variations', () => {
@@ -36,28 +30,20 @@ describe('VariationParameterMaps', () => {
 })
 
 describe('resolveVariationParameter', () => {
-  const createMockTimeline = (): MockTimeline => ({
-    getFrame: () => 0,
-    tracks: () => ({}),
-  })
-
   it('should return null when timeline state is not available', () => {
-    const mockTimeline = createMockTimeline()
     const result = resolveVariationParameter({}, 'transform1', 'variation1', 'distortion', 0)
 
     expect(result).toBeNull()
   })
 
   it('should return null when transform does not exist', () => {
-    const mockTimeline = createMockTimeline()
     const result = resolveVariationParameter({}, 'nonexistent', 'variation1', 'distortion', 0)
 
     expect(result).toBeNull()
   })
 
   it('should return null when variation does not have params', () => {
-    const mockTimeline = createMockTimeline()
-    const result = resolveVariationParameter(
+        const result = resolveVariationParameter(
       {
         transform1: {
           variations: {
@@ -78,8 +64,7 @@ describe('resolveVariationParameter', () => {
   })
 
   it('should return null when parameter is not in known variations', () => {
-    const mockTimeline = createMockTimeline()
-    const result = resolveVariationParameter({}, 'transform1', 'variation1', 'unknownParam', 0)
+        const result = resolveVariationParameter({}, 'transform1', 'variation1', 'unknownParam', 0)
 
     expect(result).toBeNull()
   })
