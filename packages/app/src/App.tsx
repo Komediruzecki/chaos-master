@@ -839,7 +839,6 @@ function App(props: AppProps) {
             </div>
           </Show>
           <TimelineRuler />
-          <KeyframeEditor />
           <TimelinePanel />
         </Dropzone>
       </TimelineContextProvider>
