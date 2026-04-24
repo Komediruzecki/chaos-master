@@ -359,6 +359,8 @@ function App(props: AppProps) {
             setPixelRatio={setPixelRatio}
           />
 
+          <KeyframeEditor />
+
           <Button
             class={ui.timelineToggle}
             onClick={() => {

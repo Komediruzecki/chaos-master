@@ -1,8 +1,7 @@
-import { createEffect, createMemo, createSignal, For } from 'solid-js'
+import { createEffect, createMemo, createSignal } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { Cross, Redo } from '@/icons'
 import { addKeyframeToTimeline, VariationParameterMaps } from '@/utils/timeline'
-import ui from './KeyframeEditor.module.css'
 import type { EasingCurve } from '@/flame/schema/timeline'
 import type { KeyframeData, TimelineTrack } from '@/utils/timeline'
 
@@ -12,6 +11,43 @@ export function KeyframeEditor() {
   const [keyframeValue, setKeyframeValue] = createSignal('0.25')
   const [interpolationMode, setInterpolationMode] =
     createSignal<EasingCurve>('linear')
+  const [isExpanded, setIsExpanded] = createSignal(true)
+
+  function ChevronDownIcon() {
+    return (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    )
+  }
+
+  function ChevronUpIcon() {
+    return (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <polyline points="18 15 12 9 6 15"></polyline>
+      </svg>
+    )
+  }
 
   const currentPath = () => selectedPath()
   const currentFrame = createMemo(() => timeline.currentFrame())
@@ -205,165 +241,125 @@ export function KeyframeEditor() {
 
   return (
     <div class={ui.editor} data-testid="keyframe-editor">
-      <h4 class={ui.title}>Keyframe Editor</h4>
-
-      <div class={ui.parameterSelect}>
-        <label>Parameter</label>
-        <select
-          value={currentPath()}
-          onChange={(e) => setSelectedPath(e.currentTarget.value)}
-          data-testid="parameter-select"
-        >
-          <option value="exposure">Render - Exposure</option>
-          <option value="skipIters">Render - Skip Iterations</option>
-          <option value="vibrancy">Render - Vibrancy</option>
-          <option value="palettePhase">Render - Palette Phase</option>
-          <option value="paletteSpeed">Render - Palette Speed</option>
-          <option value="drawMode">Render - Draw Mode</option>
-          <option value="colorInitMode">Render - Color Init Mode</option>
-          <option value="pointInitMode">Render - Point Init Mode</option>
-          <option value="backgroundColor">
-            Render - Background Color (RGB)
-          </option>
-          <option value="edgeFadeColor">Render - Edge Fade Color (RGBA)</option>
-          <option value="camera.x">Camera - X Position</option>
-          <option value="camera.y">Camera - Y Position</option>
-          <option value="camera.zoom">Camera - Zoom</option>
-          <option value="camera.rotation">Camera - Rotation</option>
-          <optgroup label="Variation Parameters (expandable)">
-            {Object.entries(VariationParameterMaps).map(([variationType, params]) => (
-              <For each={params.slice(0, 5)}>
-                {(paramName) => (
-                  <option value={`${variationType}.${paramName}`}>
-                    Variation ({variationType}) - {paramName}
-                  </option>
-                )}
-              </For>
-            ))}
-            <option value="" disabled>...</option>
-            <option value="" disabled>
-              Expand to add more variation parameters
-            </option>
-          </optgroup>
-        </select>
-        {/* Note: Variation parameter support is expandable.
-Each parametric variation can have its own specific parameters.
-This is a limited implementation. See VariationParameterMaps for the full list. */}
+      {/* Header with toggle */}
+      <div class={ui.header} onClick={() => setIsExpanded(!isExpanded())}>
+        <span class={ui.title}>Keyframes</span>
+        {isExpanded() ? <ChevronDownIcon /> : <ChevronUpIcon />}
       </div>
 
-      {currentValue() !== null && (
-        <div class={ui.currentValue}>
-          <span>Current:</span>
-          <span data-testid="current-value">{currentValue()}</span>
-        </div>
-      )}
-
-      <div class={ui.keyframeValue}>
-        <label>Value at Frame {currentFrame()}</label>
-        <input
-          type="text"
-          value={keyframeValue()}
-          onInput={(e) => setKeyframeValue(e.currentTarget.value)}
-          placeholder={
-            isNumberValue() || isVariationParam()
-              ? '0.25'
-              : isArrayValue()
-                ? '0, 0, 0, 0.8'
-                : 'colorInitZero'
-          }
-          data-testid="keyframe-value-input"
-        />
-        {isArrayValue() && (
-          <div
-            class={ui.colorPreview}
-            style={{
-              background: `rgb(${keyframeValue()})`,
-            }}
-            data-testid="color-preview"
-          />
-        )}
-      </div>
-
-      {hasKeyframeAtFrame() && (
-        <div class={ui.keyframeOptions}>
-          <div class={ui.optionGroup}>
-            <label>Interpolation</label>
+      {isExpanded() && (
+        <>
+          <div class={ui.parameterSelect}>
             <select
-              value={interpolationMode()}
-              onChange={(e) =>
-                setInterpolationMode(e.currentTarget.value as EasingCurve)
-              }
-              data-testid="interpolation-select"
+              value={currentPath()}
+              onChange={(e) => setSelectedPath(e.currentTarget.value)}
+              data-testid="parameter-select"
             >
-              <option value="linear">Linear</option>
-              <option value="easeIn">Ease In</option>
-              <option value="easeOut">Ease Out</option>
-              <option value="easeInOut">Ease In Out</option>
-              <option value="bounce">Bounce</option>
-              <option value="elastic">Elastic</option>
+              <option value="exposure">Exposure</option>
+              <option value="skipIters">Skip Iters</option>
+              <option value="vibrancy">Vibrancy</option>
+              <option value="paletteSpeed">Palette Speed</option>
+              <option value="camera.zoom">Camera Zoom</option>
+              <option value="camera.rotation">Camera Rotation</option>
             </select>
           </div>
 
-          <div class={ui.keyframeActions}>
-            <button
-              class={ui.actionButton}
-              onClick={handleDuplicateKeyframe}
-              data-testid="duplicate-keyframe"
-              title="Duplicate keyframe"
-            >
-              <Redo />
-            </button>
-            <button
-              class={ui.actionButton}
-              onClick={handleFreezeKeyframe}
-              data-testid="freeze-keyframe"
-              title="Freeze keyframe (hold current value)"
-            >
-              <Cross />
-            </button>
-          </div>
-        </div>
-      )}
+          {currentValue() !== null && (
+            <div class={ui.currentValue}>
+              <span>Frame:</span>
+              <span>{currentFrame()}</span>
+            </div>
+          )}
 
-      <div class={ui.actions}>
-        <button
-          class={ui.button}
-          classList={{ [ui.active as string]: hasKeyframeAtFrame() }}
-          onClick={handleAddKeyframe}
-          data-testid={
-            hasKeyframeAtFrame() ? 'update-keyframe' : 'add-keyframe'
-          }
-        >
-          {hasKeyframeAtFrame() ? 'Update' : 'Add Keyframe'}
-        </button>
-
-        {hasKeyframeAtFrame() && (
-          <button
-            class={ui.button}
-            classList={{ [ui.danger as string]: true }}
-            onClick={handleRemoveKeyframe}
-            data-testid="remove-keyframe"
-          >
-            Remove
-          </button>
-        )}
-      </div>
-
-      <div class={ui.info}>
-        {hasKeyframeAtFrame() ? (
-          <>
-            <span>
-              Keyframe at frame{' '}
-              <span data-testid="keyframe-frame">{currentFrame()}</span>
-            </span>
-            {isAnimating() && (
-              <span class={ui.animating}>Animation active</span>
+          <div class={ui.keyframeValue}>
+            <input
+              type="text"
+              value={keyframeValue()}
+              onInput={(e) => setKeyframeValue(e.currentTarget.value)}
+              placeholder={isNumberValue() ? '0.25' : 'colorInit'}
+              data-testid="keyframe-value-input"
+            />
+            {isArrayValue() && (
+              <div
+                class={ui.colorPreview}
+                style={{
+                  background: `rgb(${keyframeValue()})`,
+                }}
+                data-testid="color-preview"
+              />
             )}
-          </>
-        ) : (
-          <span>No keyframe at current frame</span>
-        )}
-      </div>
+          </div>
+
+          {hasKeyframeAtFrame() && (
+            <div class={ui.keyframeOptions}>
+              <select
+                value={interpolationMode()}
+                onChange={(e) =>
+                  setInterpolationMode(e.currentTarget.value as EasingCurve)
+                }
+                data-testid="interpolation-select"
+              >
+                <option value="linear">Linear</option>
+                <option value="easeIn">Ease In</option>
+                <option value="easeOut">Ease Out</option>
+                <option value="easeInOut">Ease In Out</option>
+              </select>
+
+              <button
+                class={ui.actionButton}
+                onClick={handleDuplicateKeyframe}
+                data-testid="duplicate-keyframe"
+                title="Duplicate"
+              >
+                <Redo />
+              </button>
+              <button
+                class={ui.actionButton}
+                onClick={handleFreezeKeyframe}
+                data-testid="freeze-keyframe"
+                title="Freeze"
+              >
+                <Cross />
+              </button>
+            </div>
+          )}
+
+          <div class={ui.actions}>
+            <button
+              class={ui.button}
+              classList={{ [ui.active as string]: hasKeyframeAtFrame() }}
+              onClick={handleAddKeyframe}
+              data-testid={
+                hasKeyframeAtFrame() ? 'update-keyframe' : 'add-keyframe'
+              }
+            >
+              {hasKeyframeAtFrame() ? 'Update' : 'Add'}
+            </button>
+
+            {hasKeyframeAtFrame() && (
+              <button
+                class={ui.button}
+                classList={{ [ui.danger as string]: true }}
+                onClick={handleRemoveKeyframe}
+                data-testid="remove-keyframe"
+              >
+                <Cross />
+              </button>
+            )}
+          </div>
+
+          <div class={ui.info}>
+            {hasKeyframeAtFrame() ? (
+              <>
+                Keyframe at frame <span>{currentFrame()}</span>
+                {isAnimating() && <span class={ui.animating}>Active</span>}
+              </>
+            ) : (
+              'No keyframe'
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }
