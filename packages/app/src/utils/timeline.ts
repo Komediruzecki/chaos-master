@@ -2,7 +2,7 @@ import { createSignal } from 'solid-js'
 import { clamp } from './easing'
 
 interface TimelineState {
-  tracks: () => Record<string, TimelineTrack>
+  tracks: () => TimelineTrack[]
   getFrame: () => number
 }
 
@@ -303,7 +303,9 @@ export function createTimelineState() {
 
   function getKeysForFrame(frame: number): Record<string, boolean> {
     const result: Record<string, boolean> = {}
-    for (const track of tracks()) {
+    const trackList = tracks()
+    for (let i = 0; i < trackList.length; i++) {
+      const track = trackList[i]
       const hasKf = track.keyframes.some(
         (kf: KeyframeData) => kf.frame === frame,
       )
@@ -781,6 +783,8 @@ export function createTimelineState() {
     }
   }
 
+  const getFrame = (): number => currentFrame()
+
   return {
     currentFrame,
     setCurrentFrame,
@@ -790,6 +794,7 @@ export function createTimelineState() {
     setTracks,
     isPlaying,
     setIsPlaying,
+    getFrame,
     addKeyframe,
     removeKeyframe,
     getKeysForFrame,
