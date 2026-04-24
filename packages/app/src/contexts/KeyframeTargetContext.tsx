@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'solid-js'
+import { createSignal, createContext, useContext } from 'solid-js'
 
 type KeyframeParameterPath = string
 
