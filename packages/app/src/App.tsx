@@ -1,4 +1,5 @@
 import { createEffect, createMemo, createResource, createSignal, ErrorBoundary, For, Show, Suspense, } from 'solid-js'
+import { KeyframeTargetProvider, useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { WheelZoomCamera2D } from '@/lib/WheelZoomCamera2D'
 import { createStore } from 'solid-js/store'
 import { Dynamic } from 'solid-js/web'
@@ -97,6 +98,7 @@ type AppProps = {
 
 function App(props: AppProps) {
   const { theme, setTheme } = useTheme()
+  const { setTargetedParameter } = useKeyframeTarget()
   const [qualityPreset, setQualityPreset] = createSignal<QualityPreset>(
     getPresetFromQuality(DEFAULT_QUALITY),
   )
@@ -393,14 +395,21 @@ function App(props: AppProps) {
                   })
                 }}
               />
-              <FlameColorEditor
-                transforms={flameDescriptor.transforms}
-                setTransforms={(setFn) => {
-                  setFlameDescriptor((draft) => {
-                    setFn(draft.transforms)
-                  })
+              <div
+                class={ui.transformGridRow}
+                onClick={() => {
+                  setTargetedParameter('paletteSpeed')
                 }}
-              />
+              >
+                <FlameColorEditor
+                  transforms={flameDescriptor.transforms}
+                  setTransforms={(setFn) => {
+                    setFlameDescriptor((draft) => {
+                      setFn(draft.transforms)
+                    })
+                  }}
+                />
+              </div>
               <PaletteSelector
                 selectedPaletteId={selectedPaletteId()}
                 onSelect={handlePaletteSelect}
@@ -443,22 +452,29 @@ function App(props: AppProps) {
                         [ui.transformGridFirstRow as string]: true,
                       }}
                     >
-                      <Slider
-                        class={ui.transformGridFirstRow}
-                        label="Probability"
-                        value={transform.probability}
-                        min={0}
-                        max={1}
-                        step={0.001}
-                        onInput={(probability) => {
-                          setFlameDescriptor((draft) => {
-                            draft.transforms[tid]!.probability = probability
-                          })
+                      <div
+                        class={ui.transformGridRow}
+                        onClick={() => {
+                          setTargetedParameter(`transform.${tid}.probability`)
                         }}
-                        formatValue={(value) =>
-                          formatPercent(value / totalProbability())
-                        }
-                      />
+                      >
+                        <Slider
+                          class={ui.transformGridFirstRow}
+                          label="Probability"
+                          value={transform.probability}
+                          min={0}
+                          max={1}
+                          step={0.001}
+                          onInput={(probability) => {
+                            setFlameDescriptor((draft) => {
+                              draft.transforms[tid]!.probability = probability
+                            })
+                          }}
+                          formatValue={(value) =>
+                            formatPercent(value / totalProbability())
+                          }
+                        />
+                      </div>
                     </div>
                     <For each={recordEntries(transform.variations)}>
                       {([vid, variation]) => (
@@ -604,19 +620,26 @@ function App(props: AppProps) {
                 </button>
               </Card>
               <Card>
-                <Slider
-                  label="Exposure"
-                  value={flameDescriptor.renderSettings.exposure}
-                  min={-4}
-                  max={4}
-                  step={0.001}
-                  onInput={(newExp) => {
-                    setFlameDescriptor((draft) => {
-                      draft.renderSettings.exposure = newExp
-                    })
+                <div
+                  class={ui.transformGridRow}
+                  onClick={() => {
+                    setTargetedParameter('exposure')
                   }}
-                  formatValue={(value) => value.toString()}
-                />
+                >
+                  <Slider
+                    label="Exposure"
+                    value={flameDescriptor.renderSettings.exposure}
+                    min={-4}
+                    max={4}
+                    step={0.001}
+                    onInput={(newExp) => {
+                      setFlameDescriptor((draft) => {
+                        draft.renderSettings.exposure = newExp
+                      })
+                    }}
+                    formatValue={(value) => value.toString()}
+                  />
+                </div>
                 <Slider
                   label="Skip Iterations"
                   value={flameDescriptor.renderSettings.skipIters}
@@ -696,36 +719,50 @@ function App(props: AppProps) {
                   </select>
                   <span></span>
                 </label>
-                <Slider
-                  label="Vibrancy"
-                  value={flameDescriptor.renderSettings.vibrancy}
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  onInput={(newVibrancy) => {
-                    setFlameDescriptor((draft) => {
-                      draft.renderSettings.vibrancy = newVibrancy
-                    })
+                <div
+                  class={ui.transformGridRow}
+                  onClick={() => {
+                    setTargetedParameter('vibrancy')
                   }}
-                  formatValue={(value) => value.toFixed(2)}
-                />
-                <label class={ui.labeledInput}>
-                  <span>Background Color</span>
-                  <ColorPicker
-                    value={
-                      flameDescriptor.renderSettings.backgroundColor
-                        ? vec3f(
-                            ...flameDescriptor.renderSettings.backgroundColor,
-                          )
-                        : undefined
-                    }
-                    setValue={(newBgColor) => {
+                >
+                  <Slider
+                    label="Vibrancy"
+                    value={flameDescriptor.renderSettings.vibrancy}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    onInput={(newVibrancy) => {
                       setFlameDescriptor((draft) => {
-                        draft.renderSettings.backgroundColor = newBgColor
+                        draft.renderSettings.vibrancy = newVibrancy
                       })
                     }}
+                    formatValue={(value) => value.toFixed(2)}
                   />
-                </label>
+                </div>
+                <div
+                  class={ui.transformGridRow}
+                  onClick={() => {
+                    setTargetedParameter('backgroundColor')
+                  }}
+                >
+                  <label class={ui.labeledInput}>
+                    <span>Background Color</span>
+                    <ColorPicker
+                      value={
+                        flameDescriptor.renderSettings.backgroundColor
+                          ? vec3f(
+                              ...flameDescriptor.renderSettings.backgroundColor,
+                            )
+                          : undefined
+                      }
+                      setValue={(newBgColor) => {
+                        setFlameDescriptor((draft) => {
+                          draft.renderSettings.backgroundColor = newBgColor
+                        })
+                      }}
+                    />
+                  </label>
+                </div>
                 <Show
                   when={
                     flameDescriptor.renderSettings.backgroundColor !== undefined
@@ -846,40 +883,42 @@ export function Wrappers() {
 
   return (
     <ThemeContextProvider>
-      <Modal>
-        <ErrorBoundary fallback={errorHandler}>
-          <Root
-            adapterOptions={{
-              powerPreference: 'high-performance',
-            }}
-          >
-            <Suspense>
-              {/* Always render App in background */}
-              <App
-                flameFromQuery={flameFromQuery()}
-                flameFromWelcome={selectedFlame}
-                resetFlameFromWelcome={() => {
-                  setSelectedFlame(undefined)
-                }}
-              />
-              {/* WelcomeScreen overlay on top */}
-              <Show when={showWelcome()}>
-                <WelcomeScreen
-                  showDontShowAgain={dontShowAgain()}
-                  onDontShowAgainChange={(checked) => {
-                    setDontShowAgain(checked)
-                    if (checked) {
-                      dismissWelcome()
-                    }
+      <KeyframeTargetProvider>
+        <Modal>
+          <ErrorBoundary fallback={errorHandler}>
+            <Root
+              adapterOptions={{
+                powerPreference: 'high-performance',
+              }}
+            >
+              <Suspense>
+                {/* Always render App in background */}
+                <App
+                  flameFromQuery={flameFromQuery()}
+                  flameFromWelcome={selectedFlame}
+                  resetFlameFromWelcome={() => {
+                    setSelectedFlame(undefined)
                   }}
-                  onEnter={() => setShowWelcome(false)}
-                  onSelectFlame={(flame) => setSelectedFlame(() => flame)}
                 />
-              </Show>
-            </Suspense>
-          </Root>
-        </ErrorBoundary>
-      </Modal>
+                {/* WelcomeScreen overlay on top */}
+                <Show when={showWelcome()}>
+                  <WelcomeScreen
+                    showDontShowAgain={dontShowAgain()}
+                    onDontShowAgainChange={(checked) => {
+                      setDontShowAgain(checked)
+                      if (checked) {
+                        dismissWelcome()
+                      }
+                    }}
+                    onEnter={() => setShowWelcome(false)}
+                    onSelectFlame={(flame) => setSelectedFlame(() => flame)}
+                  />
+                </Show>
+              </Suspense>
+            </Root>
+          </ErrorBoundary>
+        </Modal>
+      </KeyframeTargetProvider>
     </ThemeContextProvider>
   )
 }

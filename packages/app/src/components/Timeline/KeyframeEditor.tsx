@@ -2,16 +2,27 @@ import { createEffect, createMemo, createSignal } from 'solid-js'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { Cross, Redo } from '@/icons'
 import { addKeyframeToTimeline, VariationParameterMaps } from '@/utils/timeline'
+import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import type { EasingCurve } from '@/flame/schema/timeline'
 import type { KeyframeData, TimelineTrack } from '@/utils/timeline'
 
 export function KeyframeEditor() {
   const timeline = useTimeline()!
-  const [selectedPath, setSelectedPath] = createSignal('exposure')
+  const { targetedParameter, setTargetedParameter } = useKeyframeTarget()
+  const [selectedPath, setSelectedPath] = createSignal(
+    targetedParameter() ?? 'exposure',
+  )
   const [keyframeValue, setKeyframeValue] = createSignal('0.25')
   const [interpolationMode, setInterpolationMode] =
     createSignal<EasingCurve>('linear')
   const [isExpanded, setIsExpanded] = createSignal(true)
+
+  // Sync selectedPath with targetedParameter when it changes externally
+  createEffect(() => {
+    if (targetedParameter() && selectedPath() !== targetedParameter()) {
+      setSelectedPath(targetedParameter()!)
+    }
+  })
 
   function ChevronDownIcon() {
     return (
