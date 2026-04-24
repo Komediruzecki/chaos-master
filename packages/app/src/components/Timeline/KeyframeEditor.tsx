@@ -5,6 +5,7 @@ import { addKeyframeToTimeline, VariationParameterMaps } from '@/utils/timeline'
 import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import type { EasingCurve } from '@/flame/schema/timeline'
 import type { KeyframeData, TimelineTrack } from '@/utils/timeline'
+import ui from './KeyframeEditor.module.css'
 
 export function KeyframeEditor() {
   const timeline = useTimeline()!
