@@ -11,7 +11,7 @@
  * - Save / Cancel / Delete palette
  */
 
-import { createEffect, createMemo, createSignal, For, Show } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, onCleanup, Show } from 'solid-js'
 import { addCustomPalette, deleteCustomPalette, paletteEntry, updateCustomPalette, } from '@/flame/colorMap'
 import ui from './CustomPaletteEditor.module.css'
 import type { Palette, PaletteEntry } from '@/flame/colorMap'
@@ -134,10 +134,21 @@ export function CustomPaletteEditor(props: CustomPaletteEditorProps) {
     }
 
     setDraggingIndex(index)
+  }
+
+  // Event handlers for dragging - ref to track state without causing reactive updates
+  const draggingRef = { current: null as number | null }
+
+  // Setup drag event listeners when draggingIndex changes
+  createEffect(() => {
+    const idx = draggingIndex()
+    draggingRef.current = idx
+
+    if (idx === null || !gradientBarRef) return
 
     const onMouseMove = (me: MouseEvent) => {
-      const idx = draggingIndex()
-      if (idx === null || !gradientBarRef) return
+      const currentIdx = draggingRef.current
+      if (currentIdx === null || !gradientBarRef) return
 
       const rect = gradientBarRef.getBoundingClientRect()
       const newPos = clamp((me.clientX - rect.left) / rect.width, 0, 1)
@@ -145,7 +156,7 @@ export function CustomPaletteEditor(props: CustomPaletteEditorProps) {
       setEntries((prev) =>
         prev.map((entry) => {
           const sorted = [...prev].sort((a, b) => a.position - b.position)
-          const origEntry = sorted[idx]!
+          const origEntry = sorted[currentIdx]!
           if (entry.id !== origEntry.id) return entry
           return { ...entry, position: newPos }
         }),
@@ -154,13 +165,16 @@ export function CustomPaletteEditor(props: CustomPaletteEditorProps) {
 
     const onMouseUp = () => {
       setDraggingIndex(null)
-      document.removeEventListener('mousemove', onMouseMove)
-      document.removeEventListener('mouseup', onMouseUp)
     }
 
     document.addEventListener('mousemove', onMouseMove)
     document.addEventListener('mouseup', onMouseUp)
-  }
+
+    onCleanup(() => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    })
+  })
 
   function handlePickerClick(e: MouseEvent) {
     if (!pickerRef) return

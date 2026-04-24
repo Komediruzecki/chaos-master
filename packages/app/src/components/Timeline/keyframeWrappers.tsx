@@ -1,4 +1,5 @@
 import { For } from 'solid-js'
+import { vec2f } from 'typegpu/data'
 import { recordEntries } from '@/utils/record'
 import { handleColor } from '@/components/FlameColorEditor/FlameColorEditor'
 import { useTheme } from '@/contexts/ThemeContext'
@@ -34,7 +35,7 @@ export function WrappedFlameColorEditor(
                   style={{
                     '--color': handleColor(
                       theme(),
-                      { x: transform.color.x, y: transform.color.y },
+                      vec2f(transform.color.x, transform.color.y),
                     ),
                   }}
                 >

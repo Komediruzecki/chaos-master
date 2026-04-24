@@ -1,9 +1,10 @@
 import { createSignal, createContext, useContext } from 'solid-js'
+import type { Accessor } from 'solid-js'
 
 type KeyframeParameterPath = string
 
 interface KeyframeTargetContextType {
-  targetedParameter: KeyframeParameterPath | null
+  targetedParameter: Accessor<KeyframeParameterPath | null>
   setTargetedParameter: (path: KeyframeParameterPath | null) => void
 }
 
@@ -11,7 +12,7 @@ export const KeyframeTargetContext = createContext<KeyframeTargetContextType | n
   null,
 )
 
-export function KeyframeTargetProvider(props: { children: JSX.Element }) {
+export function KeyframeTargetProvider(props: { children: any }) {
   const [targetedParameter, setTargetedParameter] =
     createSignal<KeyframeParameterPath | null>(null)
 
