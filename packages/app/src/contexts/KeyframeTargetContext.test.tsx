@@ -1,5 +1,5 @@
 import { createSignal } from 'solid-js'
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 // Test the KeyframeTargetContext logic conceptually
 // The actual context uses createSignal, createContext, useContext from solid-js
@@ -73,16 +73,14 @@ describe('KeyframeTargetContext Logic', () => {
 
     it('should allow useKeyframeTarget to throw when context is missing', () => {
       // Simulating what useKeyframeTarget does
-      const context = null
-
-      const useKeyframeTarget = () => {
-        if (!context) {
+      const useKeyframeTarget = (ctx: unknown) => {
+        if (ctx === null) {
           throw new Error('useKeyframeTarget must be used within KeyframeTargetProvider')
         }
-        return context
+        return ctx
       }
 
-      expect(useKeyframeTarget).toThrow(
+      expect(() => useKeyframeTarget(null)).toThrow(
         'useKeyframeTarget must be used within KeyframeTargetProvider',
       )
     })
@@ -93,9 +91,9 @@ describe('KeyframeTargetContext Logic', () => {
       const [targetedParameter, setTargetedParameter] = createSignal<string | null>(null)
 
       const updates: (string | null)[] = []
-      const effect = vi.fn(() => {
+      const effect = () => {
         updates.push(targetedParameter())
-      })
+      }
 
       effect() // Initial call
       expect(updates).toEqual([null])
@@ -117,10 +115,10 @@ describe('KeyframeTargetContext Logic', () => {
       const [targetedParameter, setTargetedParameter] = createSignal<string | null>('exposure')
 
       let effectCallCount = 0
-      const effect = vi.fn(() => {
+      const effect = () => {
         effectCallCount++
-        return targetedParameter()
-      })
+        targetedParameter()
+      }
 
       effect() // Initial call
 

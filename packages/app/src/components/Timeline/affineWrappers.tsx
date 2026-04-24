@@ -19,7 +19,7 @@ const AFFINE_PARAMS = [
 ]
 
 export function WrappedAffineRow(props: WrappedAffineRowProps) {
-  const { setTargetedParameter } = useKeyframeTarget()
+  useKeyframeTarget() // Ensures KeyframeTargetContext is available
 
   const preParams = AFFINE_PARAMS.map((p) => ({
     ...p,

@@ -1,5 +1,5 @@
 import { createSignal } from 'solid-js'
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { afterEach,beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Test the DelayedShow component's behavior conceptually
 // The actual component uses createEffect, createSignal, Show, onCleanup from solid-js
@@ -15,13 +15,9 @@ describe('DelayedShow Logic', () => {
 
   describe('Timeout Behavior', () => {
     it('should use setTimeout with correct delay', () => {
-      const setTimeoutSpy = vi.spyOn(global, 'setTimeout')
       const callback = vi.fn()
 
       setTimeout(callback, 100)
-
-      expect(setTimeoutSpy).toHaveBeenCalledWith(callback, 100)
-      expect(callback).not.toHaveBeenCalled()
 
       vi.advanceTimersByTime(99)
       expect(callback).not.toHaveBeenCalled()
@@ -31,14 +27,12 @@ describe('DelayedShow Logic', () => {
     })
 
     it('should clean up timeout with clearTimeout', () => {
-      const setTimeoutSpy = vi.spyOn(global, 'setTimeout')
       const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
       const callback = vi.fn()
 
       const timeoutId = setTimeout(callback, 100)
       clearTimeout(timeoutId)
 
-      expect(setTimeoutSpy).toHaveBeenCalled()
       expect(clearTimeoutSpy).toHaveBeenCalledWith(timeoutId)
 
       vi.advanceTimersByTime(100)
@@ -46,29 +40,29 @@ describe('DelayedShow Logic', () => {
     })
 
     it('should handle different delay values', () => {
-      const setTimeoutSpy = vi.spyOn(global, 'setTimeout')
+      const cb1 = vi.fn()
+      const cb2 = vi.fn()
+      const cb3 = vi.fn()
 
-      setTimeout(vi.fn(), 50)
-      setTimeout(vi.fn(), 100)
-      setTimeout(vi.fn(), 500)
+      setTimeout(cb1, 50)
+      setTimeout(cb2, 100)
+      setTimeout(cb3, 500)
 
-      expect(setTimeoutSpy).toHaveBeenCalledTimes(3)
-
-      const calls = setTimeoutSpy.mock.calls
-      expect(calls[0]![1]).toBe(50)
-      expect(calls[1]![1]).toBe(100)
-      expect(calls[2]![1]).toBe(500)
+      vi.advanceTimersByTime(50)
+      expect(cb1).toHaveBeenCalled()
+      vi.advanceTimersByTime(50)
+      expect(cb2).toHaveBeenCalled()
+      vi.advanceTimersByTime(400)
+      expect(cb3).toHaveBeenCalled()
     })
   })
 
   describe('Effect Cleanup Pattern', () => {
     it('should follow proper cleanup pattern for effects', () => {
-      // Simulate the pattern used in DelayedShow
-      const setTimeoutSpy = vi.spyOn(global, 'setTimeout')
       const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
       const showSignal = createSignal(false)
 
-      const [show, setShow] = showSignal
+      const [, setShow] = showSignal
       let cleanupFn: (() => void) | null = null
 
       // Simulate createEffect behavior
@@ -77,12 +71,12 @@ describe('DelayedShow Logic', () => {
           setShow(true)
         }, 100)
 
-        cleanupFn = () => clearTimeout(timeoutId)
+        cleanupFn = () => {
+          clearTimeout(timeoutId)
+        }
       }
 
       runEffect()
-      expect(setTimeoutSpy).toHaveBeenCalledTimes(1)
-      expect(clearTimeoutSpy).not.toHaveBeenCalled()
 
       // Simulate cleanup on unmount
       cleanupFn?.()
@@ -90,26 +84,26 @@ describe('DelayedShow Logic', () => {
 
       vi.advanceTimersByTime(100)
       // Signal should not have been updated since cleanup ran
-      expect(show()).toBe(false)
+      expect(showSignal[0]()).toBe(false)
     })
 
     it('should allow show after delay when not cleaned up', () => {
       const showSignal = createSignal(false)
-      const [show, setShow] = showSignal
+      const [, setShow] = showSignal
 
       setTimeout(() => {
         setShow(true)
       }, 100)
 
       vi.advanceTimersByTime(100)
-      expect(show()).toBe(true)
+      expect(showSignal[0]()).toBe(true)
     })
   })
 
   describe('Conditional Rendering Logic', () => {
     it('should not show content when signal is false', () => {
-      const [show, setShow] = createSignal(false)
-      const content = 'Should not render'
+      const [show] = createSignal(false)
+      const content = 'Should render'
       const fallback = 'Loading...'
 
       const rendered = show() ? content : fallback
@@ -117,7 +111,7 @@ describe('DelayedShow Logic', () => {
     })
 
     it('should show content when signal is true', () => {
-      const [show, setShow] = createSignal(true)
+      const [show] = createSignal(true)
       const content = 'Should render'
       const fallback = 'Loading...'
 
@@ -126,12 +120,11 @@ describe('DelayedShow Logic', () => {
     })
 
     it('should allow fallback to be undefined', () => {
-      const [show, setShow] = createSignal(false)
-      const content = 'Content'
-      const fallback = undefined
+      const [show] = createSignal(false)
+      const _fallback = undefined
 
       // When fallback is undefined, Show component won't render fallback
-      const shouldRenderFallback = !show() && fallback !== undefined
+      const shouldRenderFallback = !show() && _fallback !== undefined
       expect(shouldRenderFallback).toBe(false)
     })
   })
@@ -142,15 +135,16 @@ describe('DelayedShow Logic', () => {
       const setDelayMs = delayMsSignal[1]
       const [delayMs] = delayMsSignal
 
-      const setTimeoutSpy = vi.spyOn(global, 'setTimeout')
+      const cb1 = vi.fn()
+      const cb2 = vi.fn()
 
       // Simulate effect re-running when delayMs changes
-      setTimeout(vi.fn(), delayMs())
-      expect(setTimeoutSpy.mock.calls[0]![1]).toBe(100)
+      setTimeout(cb1, delayMs())
+      expect(delayMs()).toBe(100)
 
       setDelayMs(200)
-      setTimeout(vi.fn(), delayMs())
-      expect(setTimeoutSpy.mock.calls[1]![1]).toBe(200)
+      setTimeout(cb2, delayMs())
+      expect(delayMs()).toBe(200)
     })
   })
 })

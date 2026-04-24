@@ -15,7 +15,9 @@ export function DelayedShow(props: ParentProps<DelayedShowProps>) {
     const timeoutId = setTimeout(() => {
       setShow(true)
     }, props.delayMs)
-    onCleanup(() => clearTimeout(timeoutId))
+    onCleanup(() => {
+      clearTimeout(timeoutId)
+    })
   })
   return (
     <Show when={show()} fallback={props.fallback}>

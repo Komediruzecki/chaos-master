@@ -1,8 +1,8 @@
 import { For } from 'solid-js'
 import { vec2f } from 'typegpu/data'
-import { recordEntries } from '@/utils/record'
 import { handleColor } from '@/components/FlameColorEditor/FlameColorEditor'
 import { useTheme } from '@/contexts/ThemeContext'
+import { recordEntries } from '@/utils/record'
 import { withKeyframeTarget } from './withKeyframeTarget'
 import type { TransformFunction } from '@/flame/schema/flameSchema'
 
@@ -17,16 +17,13 @@ export function WrappedFlameColorEditor(
 ) {
   const { theme } = useTheme()
 
-  const colorVar = () => `transform.color.x`
-  const colorVarY = () => `transform.color.y`
-
   return (
     <div class={props.class}>
       <For each={recordEntries(props.transforms)}>
-        {([tid, transform]) => (
+        {([_tid, transform]) => (
           <div class="transformGridRow">
             <withKeyframeTarget
-              parameterPath={colorVar()}
+              parameterPath="transform.color.x"
               class="variationButtonSvgColor"
             >
               <svg>
@@ -45,7 +42,7 @@ export function WrappedFlameColorEditor(
             </withKeyframeTarget>
 
             <withKeyframeTarget
-              parameterPath={colorVarY()}
+              parameterPath="transform.color.y"
               class="colorValueDisplay"
             >
               <span class="colorValueText">
@@ -67,8 +64,6 @@ type WrappedFlameColorRowProps = {
 }
 
 export function WrappedFlameColorRow(props: WrappedFlameColorRowProps) {
-  const { theme } = useTheme()
-
   return (
     <div class="transformGridRow">
       <withKeyframeTarget parameterPath={`transform.${props.tid}.color.x`}>

@@ -1,15 +1,15 @@
 import { createEffect, createMemo, createSignal } from 'solid-js'
+import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { useTimeline } from '@/contexts/TimelineContext'
 import { Cross, Redo } from '@/icons'
-import { addKeyframeToTimeline, VariationParameterMaps } from '@/utils/timeline'
-import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
+import { addKeyframeToTimeline } from '@/utils/timeline'
+import ui from './KeyframeEditor.module.css'
 import type { EasingCurve } from '@/flame/schema/timeline'
 import type { KeyframeData, TimelineTrack } from '@/utils/timeline'
-import ui from './KeyframeEditor.module.css'
 
 export function KeyframeEditor() {
   const timeline = useTimeline()!
-  const { targetedParameter, setTargetedParameter } = useKeyframeTarget()
+  const { targetedParameter } = useKeyframeTarget()
   const [selectedPath, setSelectedPath] = createSignal(
     targetedParameter() ?? 'exposure',
   )
@@ -20,8 +20,9 @@ export function KeyframeEditor() {
 
   // Sync selectedPath with targetedParameter when it changes externally
   createEffect(() => {
-    if (targetedParameter() && selectedPath() !== targetedParameter()) {
-      setSelectedPath(targetedParameter()!)
+    const targeted = targetedParameter()
+    if (targeted !== null && selectedPath() !== targeted) {
+      setSelectedPath(targeted)
     }
   })
 
