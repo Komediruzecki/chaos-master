@@ -107,8 +107,8 @@ describe('resolveVariationParameter', () => {
   it('should return keyframe value when keyframe exists at current frame', () => {
     const mockTimeline = {
       getFrame: () => 5,
-      tracks: () => ({
-        'transform1.variation1.distortion': {
+      tracks: () => [
+        {
           parameterPath: 'transform1.variation1.distortion',
           keyframes: [
             { frame: 0, value: 0.5 },
@@ -116,8 +116,10 @@ describe('resolveVariationParameter', () => {
             { frame: 10, value: 1.0 },
           ],
         },
-      }),
+      ],
     }
+    // @ts-expect-error - Setting window property for test
+    window.currentTimeline = mockTimeline
 
     const result = resolveVariationParameter(
       {
@@ -143,16 +145,18 @@ describe('resolveVariationParameter', () => {
   it('should support lissajous variation parameters', () => {
     const mockTimeline = {
       getFrame: () => 10,
-      tracks: () => ({
-        'transform1.variation2.freqX': {
+      tracks: () => [
+        {
           parameterPath: 'transform1.variation2.freqX',
           keyframes: [
             { frame: 0, value: 3.0 },
             { frame: 10, value: 7.0 },
           ],
         },
-      }),
+      ],
     }
+    // @ts-expect-error - Setting window property for test
+    window.currentTimeline = mockTimeline
 
     const result = resolveVariationParameter(
       {
@@ -178,23 +182,25 @@ describe('resolveVariationParameter', () => {
   it('should support multiple parameters per variation', () => {
     const mockTimeline = {
       getFrame: () => 5,
-      tracks: () => ({
-        'transform1.variation3.freqX': {
+      tracks: () => [
+        {
           parameterPath: 'transform1.variation3.freqX',
           keyframes: [
             { frame: 0, value: 2.0 },
             { frame: 5, value: 4.0 },
           ],
         },
-        'transform1.variation3.freqY': {
+        {
           parameterPath: 'transform1.variation3.freqY',
           keyframes: [
             { frame: 0, value: 3.0 },
             { frame: 5, value: 6.0 },
           ],
         },
-      }),
+      ],
     }
+    // @ts-expect-error - Setting window property for test
+    window.currentTimeline = mockTimeline
 
     const resultX = resolveVariationParameter(
       {

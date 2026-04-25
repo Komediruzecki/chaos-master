@@ -225,6 +225,15 @@ export function Flam3(props: Flam3Props) {
     'colorGradingMs',
   ])
 
+  // Debug logging for WebGPU initialization
+  console.debug('[Flam3] WebGPU initialization:', {
+    hasRoot: !!root,
+    hasDevice: !!device,
+    hasCamera: !!camera,
+    hasContext: !!context,
+    canvasSize: canvasSize(),
+  })
+
   /**
    * Timeline animation playback loop.
    * When isPlaying is true, advances the frame at the configured FPS rate.
@@ -261,8 +270,11 @@ export function Flam3(props: Flam3Props) {
   createEffect(() => {
     const tex = outputTextures
     if (!tex) {
+      console.debug('[Flam3] outputTextures not ready yet')
       return undefined
     }
+
+    console.debug('[Flam3] outputTextures ready, initializing render loop')
 
     const { textureSize, accumulationBuffer, postprocessBuffer } = tex
 
@@ -309,11 +321,16 @@ export function Flam3(props: Flam3Props) {
 
     const [forceDrawToScreen, setForceDrawToScreen] = createSignal(true)
     const [clearRequested, setClearRequested] = createSignal(true)
-    const [_batchIndex, _setBatchIndex] = createSignal(0)
-    const [_accumulatedPointCount, _setAccumulatedPointCount] = createSignal(0)
 
     createAnimationFrame(
       (frameId: number) => {
+        console.debug('[Flam3] Animation frame start:', {
+          frameId,
+          batchIndex: _batchIndex(),
+          accumulatedPoints: _accumulatedPointCount(),
+          shouldRenderFinalImage,
+        })
+
         /**
          * Rendering to screen is expensive because it involves
          * blurring and color grading. We only want to do this
@@ -330,14 +347,8 @@ export function Flam3(props: Flam3Props) {
         const pointCountPerBatch = props.pointCountPerBatch
         const colorGradingPipeline_ = colorGradingPipeline()
         if (colorGradingPipeline_ === undefined) {
+          console.debug('[Flam3] colorGradingPipeline not ready, skipping frame')
           return
-        }
-
-        const encoder = device.createCommandEncoder()
-
-        if (clearRequested()) {
-          encoder.clearBuffer(accumulationBuffer.buffer)
-          setClearRequested(false)
         }
 
         const timings = timestampQuery.average()
@@ -346,6 +357,17 @@ export function Flam3(props: Flam3Props) {
             ? estimateIterationCount(timings, shouldRenderFinalImage)
             : 1
           : 0
+
+        console.debug('[Flam3] Rendering frame', {
+          iterationCount,
+          shouldRenderFinalImage,
+          batchIndex: _batchIndex(),
+        })
+
+        if (clearRequested()) {
+          encoder.clearBuffer(accumulationBuffer.buffer)
+          setClearRequested(false)
+        }
 
         if (timings) {
           setRenderTimings({

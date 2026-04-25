@@ -177,13 +177,10 @@ export function createIFSPipeline(
 
   return {
     run: (pass: GPUComputePassEncoder, pointCount: number) => {
+      const numWorkgroups = ceil(pointCount / IFS_GROUP_SIZE)
       ifsPipeline
         .with(pass)
-        .dispatchWorkgroups(
-          ceil(pointCount / (IFS_GROUP_SIZE * IFS_GROUP_SIZE)),
-          IFS_GROUP_SIZE,
-          1,
-        )
+        .dispatchWorkgroups(numWorkgroups, 1, 1)
     },
     update: (flameDescriptor: FlameDescriptor) => {
       flameUniformsBuffer.write(extractFlameUniforms(flameDescriptor))

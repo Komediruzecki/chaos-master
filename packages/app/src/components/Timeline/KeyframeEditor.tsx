@@ -262,19 +262,26 @@ export function KeyframeEditor() {
 
       {isExpanded() && (
         <>
+          {/* Display the targeted parameter with dropdown fallback */}
           <div class={ui.parameterSelect}>
-            <select
-              value={currentPath()}
-              onChange={(e) => setSelectedPath(e.currentTarget.value)}
-              data-testid="parameter-select"
-            >
-              <option value="exposure">Exposure</option>
-              <option value="skipIters">Skip Iters</option>
-              <option value="vibrancy">Vibrancy</option>
-              <option value="paletteSpeed">Palette Speed</option>
-              <option value="camera.zoom">Camera Zoom</option>
-              <option value="camera.rotation">Camera Rotation</option>
-            </select>
+            <label class={ui.parameterLabel}>Target:</label>
+            <div class={ui.targetedParameter}>
+              <span class={ui.targetBadge}>
+                {targetedParameter() ?? currentPath()}
+              </span>
+              <select
+                value={currentPath()}
+                onChange={(e) => setSelectedPath(e.currentTarget.value)}
+                data-testid="parameter-select"
+              >
+                <option value="exposure">Exposure</option>
+                <option value="skipIters">Skip Iters</option>
+                <option value="vibrancy">Vibrancy</option>
+                <option value="paletteSpeed">Palette Speed</option>
+                <option value="camera.zoom">Camera Zoom</option>
+                <option value="camera.rotation">Camera Rotation</option>
+              </select>
+            </div>
           </div>
 
           {currentValue() !== null && (

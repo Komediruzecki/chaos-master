@@ -53,6 +53,37 @@
   display: flex;
   padding: 6px 10px;
   gap: 4px;
+  align-items: center;
+
+  .parameterLabel {
+    font-size: 0.65rem;
+    color: var(--neutral-600);
+    font-weight: 500;
+  }
+
+  .targetedParameter {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+  }
+
+  .targetBadge {
+    padding: 2px 6px;
+    background: var(--accent-color, #3b82f6);
+    color: white;
+    border-radius: 3px;
+    font-size: 0.6rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+
+    [data-theme='dark'] & {
+      background: var(--accent-color, #60a5fa);
+    }
+  }
 
   select {
     flex: 1;

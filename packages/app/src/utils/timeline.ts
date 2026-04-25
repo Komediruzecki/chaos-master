@@ -1,5 +1,5 @@
 import { createSignal } from 'solid-js'
-import { clamp } from './easing'
+import { applyEasing, clamp } from './easing'
 
 interface TimelineState {
   tracks: () => TimelineTrack[]
@@ -98,15 +98,18 @@ export function resolveVariationParameter(
   if (!timelineState) return null
 
   const trackPath = `${transformId}.${variationId}.${paramName}`
-  const track = timelineState.tracks()[trackPath]
+  // Search through the tracks array to find the matching track
+  const track = timelineState.tracks().find(
+    (t: TimelineTrack) => t.parameterPath === trackPath,
+  )
 
   if (!track) return null
 
   // Find the keyframe at the current frame
-  const keyframe = track.keyframes.find((kf: any) => kf.frame === frame)
+  const keyframe = track.keyframes.find((kf: KeyframeData) => kf.frame === frame)
   if (!keyframe) return null
 
-  return keyframe.value
+  return keyframe.value as number
 }
 
 export interface FlameDescriptor {
@@ -214,9 +217,12 @@ export function resolveKeyframeValue(
   const rawT = (frame - prev.frame) / frameRange
   const t = clamp(rawT, 0, 1)
 
-  // Type guard: if values are numbers, use lerp, otherwise interpolate strings
+  // Type guard: if values are numbers, use lerp with easing, otherwise interpolate strings
   if (typeof prev.value === 'number' && typeof next.value === 'number') {
-    return prev.value + (next.value - prev.value) * t
+    // Use the easing curve from the next keyframe (or default to linear)
+    const easingCurve = next.easing ?? 'linear'
+    const easedT = applyEasing(t, easingCurve)
+    return prev.value + (next.value - prev.value) * easedT
   }
 
   // For string interpolation (drawMode, colorInitMode, pointInitMode) or boolean
@@ -496,12 +502,6 @@ export function createTimelineState() {
         t.parameterPath === sourceParameterPath,
     )
     if (!sourceTrack) return false
-
-    const targetTrack = tracks().find(
-      (t: TimelineTrack): t is TimelineTrack =>
-        t.parameterPath === targetParameterPath,
-    )
-    if (!targetTrack) return false
 
     // Get keyframe value at source frame
     const keyframe = sourceTrack.keyframes.find(

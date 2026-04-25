@@ -1,6 +1,7 @@
 import { createMemo, Show } from 'solid-js'
 import { clamp } from 'typegpu/std'
 import { useChangeHistory } from '@/contexts/ChangeHistoryContext'
+import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { createDragHandler } from '@/utils/createDragHandler'
 import { scrollIntoViewAndFocusOnChange } from '@/utils/scrollIntoViewOnChange'
 import ui from './Slider.module.css'
@@ -15,10 +16,16 @@ type SliderProps = {
   trackFill?: boolean
   onInput: (value: number) => void
   formatValue?: (value: number) => string
+  /** Parameter path for Blender-style keyframe targeting */
+  dataParameterPath?: string
 }
 
 export function Slider(props: SliderProps) {
   const history = useChangeHistory()
+  const { targetedParameter, setTargetedParameter } = useKeyframeTarget()
+
+  const targetedPath = () => targetedParameter()
+
   const label = () => props.label ?? ''
   const min = () => props.min ?? 0
   const max = () => props.max ?? 1
@@ -53,6 +60,7 @@ export function Slider(props: SliderProps) {
       class={ui.label}
       classList={{
         [props.class ?? '']: true,
+        [ui.targeted as string]: props.dataParameterPath && targetedPath() === props.dataParameterPath,
       }}
     >
       <Show when={label()}>
@@ -77,6 +85,11 @@ export function Slider(props: SliderProps) {
           onPointerDown={commitHandler}
           onInput={(ev) => {
             props.onInput(ev.target.valueAsNumber)
+          }}
+          onDblClick={() => {
+            if (props.dataParameterPath) {
+              setTargetedParameter(props.dataParameterPath)
+            }
           }}
         />
       </div>

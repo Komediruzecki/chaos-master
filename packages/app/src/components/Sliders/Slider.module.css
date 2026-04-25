@@ -3,6 +3,7 @@
   --hover-color: black;
   --track-color-filled: var(--neutral-400);
   --track-color-empty: var(--neutral-200);
+  position: relative;
 
   [data-theme='dark'] & {
     --color: var(--neutral-400);
@@ -15,6 +16,23 @@
 .label span {
   user-select: none;
   -webkit-user-select: none;
+}
+
+.label.targeted span {
+  color: var(--accent-color, #3b82f6);
+  font-weight: 500;
+}
+
+.label.targeted::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: var(--accent-color, #3b82f6);
+  border-radius: 2px;
 }
 
 .label {

@@ -473,6 +473,7 @@ function App(props: AppProps) {
                           formatValue={(value) =>
                             formatPercent(value / totalProbability())
                           }
+                          dataParameterPath={`transform.${tid}.probability`}
                         />
                       </div>
                     </div>
@@ -638,6 +639,7 @@ function App(props: AppProps) {
                       })
                     }}
                     formatValue={(value) => value.toString()}
+                    dataParameterPath="exposure"
                   />
                 </div>
                 <Slider
@@ -652,6 +654,7 @@ function App(props: AppProps) {
                     })
                   }}
                   formatValue={(value) => value.toString()}
+                  dataParameterPath="skipIters"
                 />
                 <label class={ui.labeledInput}>
                   <span>Draw Mode</span>
@@ -737,6 +740,7 @@ function App(props: AppProps) {
                       })
                     }}
                     formatValue={(value) => value.toFixed(2)}
+                    dataParameterPath="vibrancy"
                   />
                 </div>
                 <div
