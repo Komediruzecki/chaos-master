@@ -97,17 +97,7 @@ export function AutoCanvas(props: ParentProps<AutoCanvasProps>) {
               canvas,
               ...createContext(canvas),
               pixelRatio: () => props.pixelRatio ?? 1,
-              canvasSize: () => {
-                const size = canvasSize()
-                if (!size) {
-                  return { width: 0, height: 0 }
-                }
-                const { widthPX, heightPX } = scaledCanvasSize(size)
-                return {
-                  width: widthPX,
-                  height: heightPX,
-                }
-              },
+              canvasSize,
             }}
           >
             {props.children}
