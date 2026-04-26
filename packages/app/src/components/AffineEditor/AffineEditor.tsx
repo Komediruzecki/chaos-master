@@ -154,7 +154,7 @@ function Grid() {
         pass.end()
         device.queue.submit([encoder.finish()])
       },
-      () => Infinity,
+      () => 0,
     )
   })
   return null

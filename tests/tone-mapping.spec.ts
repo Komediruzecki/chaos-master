@@ -1,25 +1,4 @@
-import { expect, test } from './helpers'
-
-async function dismissWelcomeIfPresent(page: import('@playwright/test').Page) {
-  // The welcome backdrop has z-index: 200, dismiss it if visible
-  // Try clicking the backdrop (which also dismisses) or the Enter button
-  try {
-    const backdrop = page.locator('[class*="backdrop"]').first()
-    if (await backdrop.isVisible({ timeout: 2000 })) {
-      // Try Enter button first
-      const enterBtn = page.locator('button:has-text("Enter")').first()
-      if (await enterBtn.isVisible({ timeout: 500 }).catch(() => false)) {
-        await enterBtn.click()
-      } else {
-        // Click backdrop to dismiss
-        await backdrop.click({ position: { x: 5, y: 5 } })
-      }
-      await page.waitForTimeout(500)
-    }
-  } catch {
-    // No welcome screen present
-  }
-}
+import { dismissWelcomeIfPresent, expect, test } from './helpers'
 
 test.describe('Tone Mapping', () => {
   test.beforeEach(async ({ page }) => {

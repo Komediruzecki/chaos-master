@@ -1,6 +1,7 @@
 import { For, Show } from 'solid-js'
 import { vec2f } from 'typegpu/data'
 import { useChangeHistory } from '@/contexts/ChangeHistoryContext'
+import { useKeyframeTarget } from '@/contexts/KeyframeTargetContext'
 import { Minus, Plus, Redo, Undo } from '@/icons'
 import { Button } from '../Button/Button'
 import { ButtonGroup } from '../Button/ButtonGroup'
@@ -19,6 +20,7 @@ type ViewControlProps = {
 
 export function ViewControls(props: ViewControlProps) {
   const history = useChangeHistory()
+  const { setTargetedParameter } = useKeyframeTarget()
   return (
     <div class={ui.viewControls}>
       <ButtonGroup>
@@ -44,30 +46,53 @@ export function ViewControls(props: ViewControlProps) {
         </For>
       </ButtonGroup>
       <ButtonGroup>
-        <Button
-          disabled={props.zoom <= 0.01}
+        <div
+          class={ui.viewControlWrapper}
           onClick={() => {
-            props.setZoom((p) => p * 0.9)
+            setTargetedParameter('camera.zoom')
           }}
         >
-          <Minus />
-        </Button>
-        <Button
+          <Button
+            disabled={props.zoom <= 0.01}
+            onClick={(e) => {
+              e.stopPropagation()
+              props.setZoom((p) => p * 0.9)
+            }}
+          >
+            <Minus />
+          </Button>
+        </div>
+        <div
+          class={ui.viewControlWrapper}
           onClick={() => {
-            props.setZoom(1)
-            props.setPosition(vec2f())
+            setTargetedParameter('camera.zoom')
           }}
-          style={{ 'min-width': '4rem' }}
         >
-          {(props.zoom * 100).toFixed(0)}%
-        </Button>
-        <Button
+          <Button
+            onClick={() => {
+              props.setZoom(1)
+              props.setPosition(vec2f())
+            }}
+            style={{ 'min-width': '4rem' }}
+          >
+            {(props.zoom * 100).toFixed(0)}%
+          </Button>
+        </div>
+        <div
+          class={ui.viewControlWrapper}
           onClick={() => {
-            props.setZoom((p) => p / 0.9)
+            setTargetedParameter('camera.zoom')
           }}
         >
-          <Plus />
-        </Button>
+          <Button
+            onClick={() => {
+              setTargetedParameter('camera.zoom')
+              props.setZoom((p) => p / 0.9)
+            }}
+          >
+            <Plus />
+          </Button>
+        </div>
       </ButtonGroup>
       <ButtonGroup>
         <Button

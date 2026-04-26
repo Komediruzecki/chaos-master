@@ -1,5 +1,7 @@
 // We re-export only things we use to keep the bundle small
 export {
+  array,
+  boolean,
   brand,
   flatten,
   integer,

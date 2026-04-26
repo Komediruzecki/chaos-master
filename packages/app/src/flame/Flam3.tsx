@@ -1,8 +1,10 @@
-import { createEffect, createMemo, onCleanup } from 'solid-js'
+import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js'
 import { arrayOf, vec2u, vec3f, vec4f } from 'typegpu/data'
 import { clamp } from 'typegpu/std'
-import { accumulatedPointCount, setAccumulatedPointCount, setRenderTimings, } from '@/flame/renderStats'
+import { useTimeline } from '@/contexts/TimelineContext'
+import { setRenderTimings } from '@/flame/renderStats'
 import { createTimestampQuery } from '@/utils/createTimestampQuery'
+import { applyTimelineToFlame } from '@/utils/timeline'
 import { useCamera } from '../lib/CameraContext'
 import { useCanvas } from '../lib/CanvasContext'
 import { useRootContext } from '../lib/RootContext'
@@ -13,10 +15,12 @@ import { drawModeToImplFn } from './drawMode'
 import { createIFSPipeline } from './ifsPipeline'
 import { backgroundColorDefault, backgroundColorDefaultWhite, } from './schema/flameSchema'
 import { Bucket } from './types'
+import type { TgpuBuffer, WgslArray } from 'typegpu'
 import type { v4f } from 'typegpu/data'
 import type { Palette } from './colorMap'
 import type { FlameDescriptor } from './schema/flameSchema'
 import type { ExportImageType } from '@/App'
+import type { FlameDescriptor as TimelineFlameDescriptor } from '@/utils/timeline'
 
 const { sqrt, floor } = Math
 
@@ -34,12 +38,31 @@ type Flam3Props = {
   setCurrentQuality?: (fn: () => number) => void
   setQualityPointCountLimit?: (fn: () => number) => void
   palette?: Palette
+  onEnterAnimation?: () => void
 }
 
 export function Flam3(props: Flam3Props) {
   const camera = useCamera()
   const { root, device } = useRootContext()
   const { context, canvasSize, canvas, canvasFormat } = useCanvas()
+  const timeline = useTimeline()
+
+  // Add enter animation mode button state (to be implemented in App.tsx)
+
+  // Create a copy of flameDescriptor that timeline will modify
+  const [animatedFlame, setAnimatedFlame] =
+    createSignal<TimelineFlameDescriptor>(
+      JSON.parse(JSON.stringify(props.flameDescriptor)),
+    )
+
+  // Apply timeline values to animatedFlame
+  createEffect(() => {
+    const flame = { ...props.flameDescriptor } as FlameDescriptor
+    if (timeline) {
+      applyTimelineToFlame(timeline, flame)
+    }
+    setAnimatedFlame(flame)
+  })
 
   const backgroundColorFinal = () => {
     if (props.flameDescriptor.renderSettings.backgroundColor === undefined) {
@@ -61,8 +84,11 @@ export function Flam3(props: Flam3Props) {
     return bucketProbabilityInv() / (q ** 2 - 2 * q + 1)
   }
 
+  const [_accumulatedPointCount, _setAccumulatedPointCount] = createSignal(0)
+  const [_batchIndex, _setBatchIndex] = createSignal(0)
+
   props.setCurrentQuality?.(
-    () => 1 - sqrt(bucketProbabilityInv() / accumulatedPointCount()),
+    () => 1 - sqrt(bucketProbabilityInv() / _accumulatedPointCount()),
   )
   props.setQualityPointCountLimit?.(qualityPointCountLimit)
 
@@ -70,8 +96,14 @@ export function Flam3(props: Flam3Props) {
     .createBuffer(arrayOf(vec2u, props.pointCountPerBatch))
     .$usage('storage')
 
+  // Track buffers that need cleanup to avoid destroying while GPU still references them
+  const [buffersToCleanup, setBuffersToCleanup] = createSignal<Set<unknown>>(
+    new Set(),
+  )
+
   onCleanup(() => {
-    pointRandomSeeds.destroy()
+    // Mark for cleanup after GPU work completes
+    setBuffersToCleanup((current) => new Set([...current, pointRandomSeeds]))
   })
 
   const colorGradingUniforms = root
@@ -86,46 +118,78 @@ export function Flam3(props: Flam3Props) {
     .$usage('uniform')
 
   onCleanup(() => {
-    colorGradingUniforms.destroy()
+    // Mark for cleanup after GPU work completes
+    const current = buffersToCleanup()
+    setBuffersToCleanup(new Set([...current, colorGradingUniforms]))
   })
 
-  const outputTextures = createMemo(() => {
-    const { width, height } = canvasSize()
-    if (width * height === 0) {
-      return
+  let outputTextures:
+    | {
+        accumulationBuffer: ReturnType<typeof root.createBuffer>
+        postprocessBuffer: ReturnType<typeof root.createBuffer>
+        textureSize: readonly [number, number]
+      }
+    | undefined = undefined
+
+  // Initialize buffers at component mount - they persist until cleanup
+  createEffect(() => {
+    const size = canvasSize()
+    const width = size?.width ?? 0
+    const height = size?.height ?? 0
+    if (width === 0 || height === 0) {
+      return undefined
     }
 
-    const accumulationBuffer = root
-      .createBuffer(arrayOf(Bucket, width * height))
-      .$usage('storage')
-
-    const postprocessBuffer = root
-      .createBuffer(arrayOf(Bucket, width * height))
-      .$usage('storage')
-
-    onCleanup(() => {
-      accumulationBuffer.destroy()
-      postprocessBuffer.destroy()
-    })
-
-    return {
-      accumulationBuffer,
-      postprocessBuffer,
+    const newTex = {
+      accumulationBuffer: root
+        .createBuffer(arrayOf(Bucket, width * height))
+        .$usage('storage'),
+      postprocessBuffer: root
+        .createBuffer(arrayOf(Bucket, width * height))
+        .$usage('storage'),
       textureSize: [width, height] as const,
     }
+
+    outputTextures = newTex
+    return newTex
+  })
+
+  // Properly clean up buffers after GPU work completes
+  createEffect(() => {
+    const buffers = buffersToCleanup()
+    if (buffers.size === 0) return
+
+    void device.queue.onSubmittedWorkDone().then(() => {
+      buffers.forEach((buffer: unknown) => {
+        try {
+          ;(buffer as { destroy: () => void }).destroy()
+        } catch (_e) {
+          // Ignore cleanup errors
+        }
+      })
+      setBuffersToCleanup(new Set())
+    })
   })
 
   const colorGradingPipeline = createMemo(() => {
-    const o = outputTextures()
+    const o = outputTextures
     if (!o) {
       return undefined
     }
     const { textureSize, postprocessBuffer, accumulationBuffer } = o
+    const typedPostprocessBuffer = postprocessBuffer as TgpuBuffer<
+      WgslArray<typeof Bucket>
+    >
+    const typedAccumulationBuffer = accumulationBuffer as TgpuBuffer<
+      WgslArray<typeof Bucket>
+    >
     return createColorGradingPipeline(
       root,
       colorGradingUniforms,
       textureSize,
-      props.adaptiveFilterEnabled ? postprocessBuffer : accumulationBuffer,
+      props.adaptiveFilterEnabled
+        ? typedPostprocessBuffer
+        : typedAccumulationBuffer,
       canvasFormat,
       drawModeToImplFn[props.flameDescriptor.renderSettings.drawMode],
       props.palette,
@@ -133,16 +197,22 @@ export function Flam3(props: Flam3Props) {
   })
 
   const runBlur = createMemo(() => {
-    const o = outputTextures()
+    const o = outputTextures
     if (!o) {
       return undefined
     }
     const { textureSize, accumulationBuffer, postprocessBuffer } = o
+    const typedAccumulationBuffer = accumulationBuffer as TgpuBuffer<
+      WgslArray<typeof Bucket>
+    >
+    const _typedPostprocessBuffer = postprocessBuffer as TgpuBuffer<
+      WgslArray<typeof Bucket>
+    >
     return createBlurPipeline(
       root,
       textureSize,
-      accumulationBuffer,
-      postprocessBuffer,
+      typedAccumulationBuffer,
+      typedPostprocessBuffer,
     )
   })
 
@@ -156,6 +226,32 @@ export function Flam3(props: Flam3Props) {
     'colorGradingMs',
   ])
 
+  // Debug logging for WebGPU initialization
+  console.debug('[Flam3] WebGPU initialization:', {
+    hasRoot: !!root,
+    hasDevice: !!device,
+    hasCamera: !!camera,
+    hasContext: !!context,
+    canvasSize: canvasSize(),
+  })
+
+  /**
+   * Timeline animation playback loop.
+   * When isPlaying is true, advances the frame at the configured FPS rate.
+   */
+  createEffect(() => {
+    if (!timeline || !timeline.isPlaying()) return
+
+    const intervalMs = 1000 / timeline.config().fps
+    const intervalId = window.setInterval(() => {
+      timeline.advanceFrame()
+    }, intervalMs)
+
+    onCleanup(() => {
+      clearInterval(intervalId)
+    })
+  })
+
   function estimateIterationCount(
     timings: NonNullable<ReturnType<typeof timestampQuery.average>>,
     shouldRenderFinalImage: boolean,
@@ -168,64 +264,74 @@ export function Flam3(props: Flam3Props) {
     const paintTimeMs =
       Number(shouldRenderFinalImage) *
       (colorGradingMs + Number(props.adaptiveFilterEnabled) * adaptiveFilterMs)
-    return clamp(floor((frameBudgetMs - paintTimeMs) / ifsMs), 1, 100)
+    const result = clamp(floor((frameBudgetMs - paintTimeMs) / ifsMs), 1, 100)
+    return result
   }
 
   createEffect(() => {
-    const o = outputTextures()
-    if (!o) {
+    const tex = outputTextures
+    if (!tex) {
+      console.debug('[Flam3] outputTextures not ready yet')
       return undefined
     }
 
-    const { textureSize, accumulationBuffer } = o
+    console.debug('[Flam3] outputTextures ready, initializing render loop')
+
+    const { textureSize, accumulationBuffer, postprocessBuffer } = tex
+
+    // Add type assertions to satisfy typegpu's strict buffer typing
+    const typedAccumulationBuffer = accumulationBuffer as TgpuBuffer<
+      WgslArray<typeof Bucket>
+    >
+    const _typedPostprocessBuffer = postprocessBuffer as TgpuBuffer<
+      WgslArray<typeof Bucket>
+    >
 
     const ifsPipeline = createIFSPipeline(
       root,
       camera,
-      props.flameDescriptor.renderSettings.skipIters,
+      animatedFlame().renderSettings.skipIters,
       pointRandomSeeds,
-      props.flameDescriptor.transforms,
+      animatedFlame().transforms as never,
       textureSize,
-      accumulationBuffer,
-      props.flameDescriptor.renderSettings.colorInitMode,
-      props.flameDescriptor.renderSettings.pointInitMode,
+      typedAccumulationBuffer,
+      animatedFlame().renderSettings.colorInitMode,
+      animatedFlame().renderSettings.pointInitMode,
     )
 
-    let batchIndex = 0
-    let accumulatedPointCount = 0
-    let forceDrawToScreen = false
-    let clearRequested = true
     createEffect(() => {
-      ifsPipeline.update(props.flameDescriptor)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ifsPipeline.update(animatedFlame() as any)
       camera.update()
-      batchIndex = 0
-      accumulatedPointCount = 0
-      clearRequested = true
-      rafLoop.redraw()
     })
 
     createEffect(() => {
       colorGradingUniforms.writePartial({
-        exposure: 2 * Math.exp(props.flameDescriptor.renderSettings.exposure),
+        exposure: 2 * Math.exp(animatedFlame().renderSettings.exposure),
         edgeFadeColor: props.onExportImage ? vec4f(0) : props.edgeFadeColor,
         backgroundColor: vec4f(backgroundColorFinal(), 1),
-        vibrancy: props.flameDescriptor.renderSettings.vibrancy,
+        vibrancy: animatedFlame().renderSettings.vibrancy,
         paletteEntryCount: props.palette?.entries.length ?? 0,
       })
-      rafLoop.redraw()
-      forceDrawToScreen = true
     })
 
     createEffect(() => {
-      // redraw when these change
       const _ = colorGradingPipeline()
       void props.palette // track palette changes
-      rafLoop.redraw()
-      forceDrawToScreen = true
     })
 
-    const rafLoop = createAnimationFrame(
-      (frameId) => {
+    const [forceDrawToScreen, setForceDrawToScreen] = createSignal(true)
+    const [clearRequested, setClearRequested] = createSignal(true)
+
+    createAnimationFrame(
+      (frameId: number) => {
+        console.debug('[Flam3] Animation frame start:', {
+          frameId,
+          batchIndex: _batchIndex(),
+          accumulatedPoints: _accumulatedPointCount(),
+          shouldRenderFinalImage,
+        })
+
         /**
          * Rendering to screen is expensive because it involves
          * blurring and color grading. We only want to do this
@@ -234,30 +340,35 @@ export function Flam3(props: Flam3Props) {
          * convergence speed.
          */
         const shouldRenderFinalImage =
-          forceDrawToScreen ||
-          batchIndex < OUTPUT_EVERY_FRAME_BATCH_INDEX ||
-          batchIndex % OUTPUT_INTERVAL_BATCH_INDEX === 0 ||
+          forceDrawToScreen() ||
+          _batchIndex() < OUTPUT_EVERY_FRAME_BATCH_INDEX ||
+          _batchIndex() % OUTPUT_INTERVAL_BATCH_INDEX === 0 ||
           props.onExportImage !== undefined
 
         const pointCountPerBatch = props.pointCountPerBatch
         const colorGradingPipeline_ = colorGradingPipeline()
         if (colorGradingPipeline_ === undefined) {
+          console.debug('[Flam3] colorGradingPipeline not ready, skipping frame')
           return
         }
 
-        const encoder = device.createCommandEncoder()
-
-        if (clearRequested) {
-          clearRequested = false
-          encoder.clearBuffer(accumulationBuffer.buffer)
-        }
-
         const timings = timestampQuery.average()
-        const iterationCount = continueRendering(accumulatedPointCount)
+        const iterationCount = continueRendering(_accumulatedPointCount())
           ? timings
             ? estimateIterationCount(timings, shouldRenderFinalImage)
             : 1
           : 0
+
+        console.debug('[Flam3] Rendering frame', {
+          iterationCount,
+          shouldRenderFinalImage,
+          batchIndex: _batchIndex(),
+        })
+
+        if (clearRequested()) {
+          encoder.clearBuffer(accumulationBuffer.buffer)
+          setClearRequested(false)
+        }
 
         if (timings) {
           setRenderTimings({
@@ -279,15 +390,15 @@ export function Flam3(props: Flam3Props) {
             pass.end()
           }
 
-          accumulatedPointCount += pointCountPerBatch * iterationCount
+          _setAccumulatedPointCount(
+            _accumulatedPointCount() + pointCountPerBatch * iterationCount,
+          )
         }
-
-        setAccumulatedPointCount(accumulatedPointCount)
 
         if (shouldRenderFinalImage) {
           colorGradingUniforms.writePartial({
             averagePointCountPerBucketInv:
-              bucketProbabilityInv() / accumulatedPointCount,
+              bucketProbabilityInv() / _accumulatedPointCount(),
           })
           if (props.adaptiveFilterEnabled) {
             const pass = encoder.beginComputePass({
@@ -316,20 +427,33 @@ export function Flam3(props: Flam3Props) {
         timestampQuery.write(encoder)
         device.queue.submit([encoder.finish()])
 
+        // Mark buffers for cleanup after GPU work completes
+        // Use the same buffer instances that were created at component mount
         device.queue
           .onSubmittedWorkDone()
-          .then(() => timestampQuery.read(frameId))
+          .then(() => {
+            const currentBuffers = { accumulationBuffer, postprocessBuffer }
+            const cleanupSet = buffersToCleanup()
+            setBuffersToCleanup(
+              new Set([
+                ...cleanupSet,
+                currentBuffers.accumulationBuffer,
+                currentBuffers.postprocessBuffer,
+              ]),
+            )
+            timestampQuery.read(frameId).catch(() => {})
+          })
           .catch(() => {})
+
         props.onExportImage?.(canvas)
 
-        batchIndex += 1
-        forceDrawToScreen = false
+        _setBatchIndex(_batchIndex() + 1)
+        setForceDrawToScreen(false)
       },
-      () =>
-        continueRendering(accumulatedPointCount)
-          ? props.renderInterval
-          : Infinity,
-      () => device.queue.onSubmittedWorkDone(),
+      continueRendering(_accumulatedPointCount())
+        ? () => props.renderInterval
+        : 0,
+      () => Promise.resolve(device.queue.onSubmittedWorkDone()),
     )
   })
   return null

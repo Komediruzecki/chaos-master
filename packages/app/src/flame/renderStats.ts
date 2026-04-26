@@ -59,3 +59,6 @@ export const [currentQuality, setCurrentQuality] = createSignal<
 export const [qualityPointCountLimit, setQualityPointCountLimit] = createSignal<
   Accessor<number>
 >(() => 0)
+
+export const [forceDrawToScreen, setForceDrawToScreen] = createSignal(true)
+export const [clearRequested, setClearRequested] = createSignal(true)

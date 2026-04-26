@@ -12,9 +12,20 @@
   isolation: isolate;
 }
 
+.viewport-with-timeline {
+  grid-area: viewport;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
+}
+
+.viewport-content {
+  grid-row-end: timeline;
+  overflow: hidden;
+}
+
 .canvas-container {
   grid-area: viewport;
-  grid-row-end: viewport-controls;
   overflow: hidden;
   z-index: -1;
 
@@ -24,6 +35,19 @@
   &:not(.fullscreen) {
     /* allow canvas fade to go under the sidebar a bit */
     margin-left: -0.4rem;
+  }
+}
+
+.timeline-container {
+  grid-area: timeline;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--neutral-100);
+  border-top: 1px solid var(--neutral-200);
+
+  [data-theme='dark'] & {
+    background-color: var(--neutral-950);
+    border-top-color: var(--neutral-800);
   }
 }
 
@@ -311,4 +335,14 @@
 
 .affine-editor {
   min-height: 25vh;
+}
+
+.timeline-section {
+  margin-bottom: var(--space-2);
+}
+
+.timelineToggle {
+  height: 2.5rem;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
 }
