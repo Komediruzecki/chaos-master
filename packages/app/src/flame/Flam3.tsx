@@ -123,8 +123,6 @@ export function Flam3(props: Flam3Props) {
     setBuffersToCleanup(new Set([...current, colorGradingUniforms]))
   })
 
-  // Create buffers once at component mount - they will be cleaned up after GPU work
-  const { width, height } = canvasSize()
   let outputTextures:
     | {
         accumulationBuffer: ReturnType<typeof root.createBuffer>
@@ -135,7 +133,10 @@ export function Flam3(props: Flam3Props) {
 
   // Initialize buffers at component mount - they persist until cleanup
   createEffect(() => {
-    if (width * height === 0) {
+    const size = canvasSize()
+    const width = size?.width ?? 0
+    const height = size?.height ?? 0
+    if (width === 0 || height === 0) {
       return undefined
     }
 
